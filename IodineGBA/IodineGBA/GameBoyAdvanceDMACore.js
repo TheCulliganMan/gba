@@ -169,11 +169,33 @@ GameBoyAdvanceDMA.prototype.perform = function () {
     this.currentDMA.handleDMACopy();
 }
 GameBoyAdvanceDMA.prototype.nextEventTime = function () {
-    var clocks = -1;
-    var workbench = -1;
-    for (var dmaChannel = 0; (dmaChannel | 0) < 4; dmaChannel = ((dmaChannel | 0) + 1) | 0) {
-        workbench = this.channels[dmaChannel | 0].nextEventTime() | 0;
-        clocks = (((clocks | 0) >= 0) ? (((workbench | 0) >= 0) ? Math.min(clocks | 0, workbench | 0) : (clocks | 0)) : (workbench | 0)) | 0;
+    var clocks = this.channels[0].nextEventTime() | 0;
+    var workbench = this.channels[1].nextEventTime() | 0;
+    if ((clocks | 0) >= 0) {
+        if ((workbench | 0) >= 0) {
+            clocks = Math.min(clocks | 0, workbench | 0) | 0;
+        }
+    }
+    else {
+        clocks = workbench | 0;
+    }
+    workbench = this.channels[2].nextEventTime() | 0;
+    if ((clocks | 0) >= 0) {
+        if ((workbench | 0) >= 0) {
+            clocks = Math.min(clocks | 0, workbench | 0) | 0;
+        }
+    }
+    else {
+        clocks = workbench | 0;
+    }
+    workbench = this.channels[3].nextEventTime() | 0;
+    if ((clocks | 0) >= 0) {
+        if ((workbench | 0) >= 0) {
+            clocks = Math.min(clocks | 0, workbench | 0) | 0;
+        }
+    }
+    else {
+        clocks = workbench | 0;
     }
     return clocks | 0;
 }

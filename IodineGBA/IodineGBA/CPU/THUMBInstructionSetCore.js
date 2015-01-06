@@ -22,7 +22,7 @@ function THUMBInstructionSet(CPUCore) {
 THUMBInstructionSet.prototype.initialize = function () {
     this.wait = this.CPUCore.wait;
     this.registers = this.CPUCore.registers;
-    this.CPSR = this.CPUCore.CPSR;
+    this.branchFlags = this.CPUCore.branchFlags;
     this.fetch = 0;
     this.decode = 0;
     this.execute = 0;
@@ -429,12 +429,12 @@ THUMBInstructionSet.prototype.LSLimm = function () {
     var offset = (this.execute >> 6) & 0x1F;
     if ((offset | 0) > 0) {
         //CPSR Carry is set by the last bit shifted out:
-        this.CPSR.setCarryInt(source << (((offset | 0) - 1) | 0));
+        this.branchFlags.setCarryInt(source << (((offset | 0) - 1) | 0));
         //Perform shift:
         source = source << (offset | 0);
     }
     //Perform CPSR updates for N and Z (But not V):
-    this.CPSR.setNZInt(source | 0);
+    this.branchFlags.setNZInt(source | 0);
     //Update destination register:
     this.write0OffsetLowRegister(source | 0);
     //Update PC:
@@ -445,16 +445,16 @@ THUMBInstructionSet.prototype.LSRimm = function () {
     var offset = (this.execute >> 6) & 0x1F;
     if ((offset | 0) > 0) {
         //CPSR Carry is set by the last bit shifted out:
-        this.CPSR.setCarryInt((source >> (((offset | 0) - 1) | 0)) << 31);
+        this.branchFlags.setCarryInt((source >> (((offset | 0) - 1) | 0)) << 31);
         //Perform shift:
         source = (source >>> (offset | 0)) | 0;
     }
     else {
-        this.CPSR.setCarryInt(source | 0);
+        this.branchFlags.setCarryInt(source | 0);
         source = 0;
     }
     //Perform CPSR updates for N and Z (But not V):
-    this.CPSR.setNZInt(source | 0);
+    this.branchFlags.setNZInt(source | 0);
     //Update destination register:
     this.write0OffsetLowRegister(source | 0);
     //Update PC:
@@ -465,16 +465,16 @@ THUMBInstructionSet.prototype.ASRimm = function () {
     var offset = (this.execute >> 6) & 0x1F;
     if ((offset | 0) > 0) {
         //CPSR Carry is set by the last bit shifted out:
-        this.CPSR.setCarryInt((source >> (((offset | 0) - 1) | 0)) << 31);
+        this.branchFlags.setCarryInt((source >> (((offset | 0) - 1) | 0)) << 31);
         //Perform shift:
         source = source >> (offset | 0);
     }
     else {
-        this.CPSR.setCarryInt(source | 0);
+        this.branchFlags.setCarryInt(source | 0);
         source = source >> 0x1F;
     }
     //Perform CPSR updates for N and Z (But not V):
-    this.CPSR.setNZInt(source | 0);
+    this.branchFlags.setNZInt(source | 0);
     //Update destination register:
     this.write0OffsetLowRegister(source | 0);
     //Update PC:
@@ -484,7 +484,7 @@ THUMBInstructionSet.prototype.ADDreg = function () {
     var operand1 = this.read3OffsetLowRegister() | 0;
     var operand2 = this.read6OffsetLowRegister() | 0;
     //Update destination register:
-    this.write0OffsetLowRegister(this.CPSR.setADDFlags(operand1 | 0, operand2 | 0) | 0);
+    this.write0OffsetLowRegister(this.branchFlags.setADDFlags(operand1 | 0, operand2 | 0) | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -492,7 +492,7 @@ THUMBInstructionSet.prototype.SUBreg = function () {
     var operand1 = this.read3OffsetLowRegister() | 0;
     var operand2 = this.read6OffsetLowRegister() | 0;
     //Update destination register:
-    this.write0OffsetLowRegister(this.CPSR.setSUBFlags(operand1 | 0, operand2 | 0) | 0);
+    this.write0OffsetLowRegister(this.branchFlags.setSUBFlags(operand1 | 0, operand2 | 0) | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -500,7 +500,7 @@ THUMBInstructionSet.prototype.ADDimm3 = function () {
     var operand1 = this.read3OffsetLowRegister() | 0;
     var operand2 = (this.execute >> 6) & 0x7;
     //Update destination register:
-    this.write0OffsetLowRegister(this.CPSR.setADDFlags(operand1 | 0, operand2 | 0) | 0);
+    this.write0OffsetLowRegister(this.branchFlags.setADDFlags(operand1 | 0, operand2 | 0) | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -508,15 +508,15 @@ THUMBInstructionSet.prototype.SUBimm3 = function () {
     var operand1 = this.read3OffsetLowRegister() | 0;
     var operand2 = (this.execute >> 6) & 0x7;
     //Update destination register:
-    this.write0OffsetLowRegister(this.CPSR.setSUBFlags(operand1 | 0, operand2 | 0) | 0);
+    this.write0OffsetLowRegister(this.branchFlags.setSUBFlags(operand1 | 0, operand2 | 0) | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
 THUMBInstructionSet.prototype.MOVimm8 = function () {
     //Get the 8-bit value to move into the register:
     var result = this.execute & 0xFF;
-    this.CPSR.setNegativeFalse();
-    this.CPSR.setZeroInt(result | 0);
+    this.branchFlags.setNegativeFalse();
+    this.branchFlags.setZeroInt(result | 0);
     //Update destination register:
     this.write8OffsetLowRegister(result | 0);
     //Update PC:
@@ -526,7 +526,7 @@ THUMBInstructionSet.prototype.CMPimm8 = function () {
     //Compare an 8-bit immediate value with a register:
     var operand1 = this.read8OffsetLowRegister() | 0;
     var operand2 = this.execute & 0xFF;
-    this.CPSR.setCMPFlags(operand1 | 0, operand2 | 0);
+    this.branchFlags.setCMPFlags(operand1 | 0, operand2 | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -534,7 +534,7 @@ THUMBInstructionSet.prototype.ADDimm8 = function () {
     //Add an 8-bit immediate value with a register:
     var operand1 = this.read8OffsetLowRegister() | 0;
     var operand2 = this.execute & 0xFF;
-    this.write8OffsetLowRegister(this.CPSR.setADDFlags(operand1 | 0, operand2 | 0) | 0);
+    this.write8OffsetLowRegister(this.branchFlags.setADDFlags(operand1 | 0, operand2 | 0) | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -542,7 +542,7 @@ THUMBInstructionSet.prototype.SUBimm8 = function () {
     //Subtract an 8-bit immediate value from a register:
     var operand1 = this.read8OffsetLowRegister() | 0;
     var operand2 = this.execute & 0xFF;
-    this.write8OffsetLowRegister(this.CPSR.setSUBFlags(operand1 | 0, operand2 | 0) | 0);
+    this.write8OffsetLowRegister(this.branchFlags.setSUBFlags(operand1 | 0, operand2 | 0) | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -551,7 +551,7 @@ THUMBInstructionSet.prototype.AND = function () {
     var destination = this.read0OffsetLowRegister() | 0;
     //Perform bitwise AND:
     var result = source & destination;
-    this.CPSR.setNZInt(result | 0);
+    this.branchFlags.setNZInt(result | 0);
     //Update destination register:
     this.write0OffsetLowRegister(result | 0);
     //Update PC:
@@ -562,7 +562,7 @@ THUMBInstructionSet.prototype.EOR = function () {
     var destination = this.read0OffsetLowRegister() | 0;
     //Perform bitwise EOR:
     var result = source ^ destination;
-    this.CPSR.setNZInt(result | 0);
+    this.branchFlags.setNZInt(result | 0);
     //Update destination register:
     this.write0OffsetLowRegister(result | 0);
     //Update PC:
@@ -575,22 +575,22 @@ THUMBInstructionSet.prototype.LSL = function () {
     if ((source | 0) > 0) {
         if ((source | 0) < 0x20) {
             //Shift the register data left:
-            this.CPSR.setCarryInt(destination << (((source | 0) - 1) | 0));
+            this.branchFlags.setCarryInt(destination << (((source | 0) - 1) | 0));
             destination = destination << (source | 0);
         }
         else if ((source | 0) == 0x20) {
             //Shift bit 0 into carry:
-            this.CPSR.setCarryInt(destination << 31);
+            this.branchFlags.setCarryInt(destination << 31);
             destination = 0;
         }
         else {
             //Everything Zero'd:
-            this.CPSR.setCarryFalse();
+            this.branchFlags.setCarryFalse();
             destination = 0;
         }
     }
     //Perform CPSR updates for N and Z (But not V):
-    this.CPSR.setNZInt(destination | 0);
+    this.branchFlags.setNZInt(destination | 0);
     //Update destination register:
     this.write0OffsetLowRegister(destination | 0);
     //Update PC:
@@ -603,22 +603,22 @@ THUMBInstructionSet.prototype.LSR = function () {
     if ((source | 0) > 0) {
         if ((source | 0) < 0x20) {
             //Shift the register data right logically:
-            this.CPSR.setCarryInt((destination >> (((source | 0) - 1) | 0)) << 31);
+            this.branchFlags.setCarryInt((destination >> (((source | 0) - 1) | 0)) << 31);
             destination = (destination >>> (source | 0)) | 0;
         }
         else if (source == 0x20) {
             //Shift bit 31 into carry:
-            this.CPSR.setCarryInt(destination | 0);
+            this.branchFlags.setCarryInt(destination | 0);
             destination = 0;
         }
         else {
             //Everything Zero'd:
-            this.CPSR.setCarryFalse();
+            this.branchFlags.setCarryFalse();
             destination = 0;
         }
     }
     //Perform CPSR updates for N and Z (But not V):
-    this.CPSR.setNZInt(destination | 0);
+    this.branchFlags.setNZInt(destination | 0);
     //Update destination register:
     this.write0OffsetLowRegister(destination | 0);
     //Update PC:
@@ -631,17 +631,17 @@ THUMBInstructionSet.prototype.ASR = function () {
     if ((source | 0) > 0) {
         if ((source | 0) < 0x20) {
             //Shift the register data right arithmetically:
-            this.CPSR.setCarryInt((destination >> (((source | 0) - 1) | 0)) << 31);
+            this.branchFlags.setCarryInt((destination >> (((source | 0) - 1) | 0)) << 31);
             destination = destination >> (source | 0);
         }
         else {
             //Set all bits with bit 31:
-            this.CPSR.setCarryInt(destination | 0);
+            this.branchFlags.setCarryInt(destination | 0);
             destination = destination >> 0x1F;
         }
     }
     //Perform CPSR updates for N and Z (But not V):
-    this.CPSR.setNZInt(destination | 0);
+    this.branchFlags.setNZInt(destination | 0);
     //Update destination register:
     this.write0OffsetLowRegister(destination | 0);
     //Update PC:
@@ -651,7 +651,7 @@ THUMBInstructionSet.prototype.ADC = function () {
     var operand1 = this.read0OffsetLowRegister() | 0;
     var operand2 = this.read3OffsetLowRegister() | 0;
     //Update destination register:
-    this.write0OffsetLowRegister(this.CPSR.setADCFlags(operand1 | 0, operand2 | 0) | 0);
+    this.write0OffsetLowRegister(this.branchFlags.setADCFlags(operand1 | 0, operand2 | 0) | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -659,7 +659,7 @@ THUMBInstructionSet.prototype.SBC = function () {
     var operand1 = this.read0OffsetLowRegister() | 0;
     var operand2 = this.read3OffsetLowRegister() | 0;
     //Update destination register:
-    this.write0OffsetLowRegister(this.CPSR.setSBCFlags(operand1 | 0, operand2 | 0) | 0);
+    this.write0OffsetLowRegister(this.branchFlags.setSBCFlags(operand1 | 0, operand2 | 0) | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -670,16 +670,16 @@ THUMBInstructionSet.prototype.ROR = function () {
         source = source & 0x1F;
         if ((source | 0) > 0) {
             //CPSR Carry is set by the last bit shifted out:
-            this.CPSR.setCarryInt((destination >> ((source - 1) | 0)) << 31);
+            this.branchFlags.setCarryInt((destination >> ((source - 1) | 0)) << 31);
             //Perform rotate:
             destination = (destination << ((0x20 - (source | 0)) | 0)) | (destination >>> (source | 0));
         }
         else {
-            this.CPSR.setCarryInt(destination | 0);
+            this.branchFlags.setCarryInt(destination | 0);
         }
     }
     //Perform CPSR updates for N and Z (But not V):
-    this.CPSR.setNZInt(destination | 0);
+    this.branchFlags.setNZInt(destination | 0);
     //Update destination register:
     this.write0OffsetLowRegister(destination | 0);
     //Update PC:
@@ -690,16 +690,22 @@ THUMBInstructionSet.prototype.TST = function () {
     var destination = this.read0OffsetLowRegister() | 0;
     //Perform bitwise AND:
     var result = source & destination;
-    this.CPSR.setNZInt(result | 0);
+    this.branchFlags.setNZInt(result | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
 THUMBInstructionSet.prototype.NEG = function () {
     var source = this.read3OffsetLowRegister() | 0;
-    this.CPSR.setOverflow((source ^ (-(source | 0))) == 0);
-    //Perform Subtraction:
-    source = (-(source | 0)) | 0;
-    this.CPSR.setNZInt(source | 0);
+    if ((source | 0) != -0x80000000) {
+        //Perform Subtraction:
+        source = (-(source | 0)) | 0;
+        this.branchFlags.setOverflowFalse();
+    }
+    else {
+        //Negation of MIN_INT overflows!
+        this.branchFlags.setOverflowTrue();
+    }
+    this.branchFlags.setNZInt(source | 0);
     //Update destination register:
     this.write0OffsetLowRegister(source | 0);
     //Update PC:
@@ -709,7 +715,7 @@ THUMBInstructionSet.prototype.CMP = function () {
     //Compare two registers:
     var operand1 = this.read0OffsetLowRegister() | 0;
     var operand2 = this.read3OffsetLowRegister() | 0;
-    this.CPSR.setCMPFlags(operand1 | 0, operand2 | 0);
+    this.branchFlags.setCMPFlags(operand1 | 0, operand2 | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -717,7 +723,7 @@ THUMBInstructionSet.prototype.CMN = function () {
     //Compare two registers:
     var operand1 = this.read0OffsetLowRegister() | 0;
     var operand2 = this.read3OffsetLowRegister() | 0;
-    this.CPSR.setCMNFlags(operand1 | 0, operand2 | 0);
+    this.branchFlags.setCMNFlags(operand1 | 0, operand2 | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -726,7 +732,7 @@ THUMBInstructionSet.prototype.ORR = function () {
     var destination = this.read0OffsetLowRegister() | 0;
     //Perform bitwise OR:
     var result = source | destination;
-    this.CPSR.setNZInt(result | 0);
+    this.branchFlags.setNZInt(result | 0);
     //Update destination register:
     this.write0OffsetLowRegister(result | 0);
     //Update PC:
@@ -737,8 +743,8 @@ THUMBInstructionSet.prototype.MUL = function () {
     var destination = this.read0OffsetLowRegister() | 0;
     //Perform MUL32:
     var result = this.CPUCore.performMUL32(source | 0, destination | 0, 0) | 0;
-    this.CPSR.setCarryFalse();
-    this.CPSR.setNZInt(result | 0);
+    this.branchFlags.setCarryFalse();
+    this.branchFlags.setNZInt(result | 0);
     //Update destination register:
     this.write0OffsetLowRegister(result | 0);
     //Update PC:
@@ -749,7 +755,7 @@ THUMBInstructionSet.prototype.BIC = function () {
     var destination = this.read0OffsetLowRegister() | 0;
     //Perform bitwise AND with a bitwise NOT on source:
     var result = (~source) & destination;
-    this.CPSR.setNZInt(result | 0);
+    this.branchFlags.setNZInt(result | 0);
     //Update destination register:
     this.write0OffsetLowRegister(result | 0);
     //Update PC:
@@ -758,7 +764,7 @@ THUMBInstructionSet.prototype.BIC = function () {
 THUMBInstructionSet.prototype.MVN = function () {
     //Perform bitwise NOT on source:
     var source = ~this.read3OffsetLowRegister();
-    this.CPSR.setNZInt(source | 0);
+    this.branchFlags.setNZInt(source | 0);
     //Update destination register:
     this.write0OffsetLowRegister(source | 0);
     //Update PC:
@@ -791,7 +797,7 @@ THUMBInstructionSet.prototype.CMPH_LH = function () {
     //Compare two registers:
     var operand1 = this.read0OffsetLowRegister() | 0;
     var operand2 = this.readHighRegister(this.execute >> 3) | 0;
-    this.CPSR.setCMPFlags(operand1 | 0, operand2 | 0);
+    this.branchFlags.setCMPFlags(operand1 | 0, operand2 | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -799,7 +805,7 @@ THUMBInstructionSet.prototype.CMPH_HL = function () {
     //Compare two registers:
     var operand1 = this.readHighRegister(this.execute | 0) | 0;
     var operand2 = this.read3OffsetLowRegister() | 0;
-    this.CPSR.setCMPFlags(operand1 | 0, operand2 | 0);
+    this.branchFlags.setCMPFlags(operand1 | 0, operand2 | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -807,7 +813,7 @@ THUMBInstructionSet.prototype.CMPH_HH = function () {
     //Compare two registers:
     var operand1 = this.readHighRegister(this.execute | 0) | 0;
     var operand2 = this.readHighRegister(this.execute >> 3) | 0;
-    this.CPSR.setCMPFlags(operand1 | 0, operand2 | 0);
+    this.branchFlags.setCMPFlags(operand1 | 0, operand2 | 0);
     //Update PC:
     this.incrementProgramCounter();
 }
@@ -1117,7 +1123,7 @@ THUMBInstructionSet.prototype.LDMIA = function () {
 }
 THUMBInstructionSet.prototype.BEQ = function () {
     //Branch if EQual:
-    if (this.CPSR.getZero()) {
+    if (this.branchFlags.getZero()) {
         this.offsetPC();
     }
     else {
@@ -1127,7 +1133,7 @@ THUMBInstructionSet.prototype.BEQ = function () {
 }
 THUMBInstructionSet.prototype.BNE = function () {
     //Branch if Not Equal:
-    if (!this.CPSR.getZero()) {
+    if (!this.branchFlags.getZero()) {
         this.offsetPC();
     }
     else {
@@ -1137,7 +1143,7 @@ THUMBInstructionSet.prototype.BNE = function () {
 }
 THUMBInstructionSet.prototype.BCS = function () {
     //Branch if Carry Set:
-    if (this.CPSR.getCarry()) {
+    if (this.branchFlags.getCarry()) {
         this.offsetPC();
     }
     else {
@@ -1147,7 +1153,7 @@ THUMBInstructionSet.prototype.BCS = function () {
 }
 THUMBInstructionSet.prototype.BCC = function () {
     //Branch if Carry Clear:
-    if (!this.CPSR.getCarry()) {
+    if (!this.branchFlags.getCarry()) {
         this.offsetPC();
     }
     else {
@@ -1157,7 +1163,7 @@ THUMBInstructionSet.prototype.BCC = function () {
 }
 THUMBInstructionSet.prototype.BMI = function () {
     //Branch if Negative Set:
-    if (this.CPSR.getNegative()) {
+    if (this.branchFlags.getNegative()) {
         this.offsetPC();
     }
     else {
@@ -1167,7 +1173,7 @@ THUMBInstructionSet.prototype.BMI = function () {
 }
 THUMBInstructionSet.prototype.BPL = function () {
     //Branch if Negative Clear:
-    if (!this.CPSR.getNegative()) {
+    if (!this.branchFlags.getNegative()) {
         this.offsetPC();
     }
     else {
@@ -1177,7 +1183,7 @@ THUMBInstructionSet.prototype.BPL = function () {
 }
 THUMBInstructionSet.prototype.BVS = function () {
     //Branch if Overflow Set:
-    if (this.CPSR.getOverflow()) {
+    if (this.branchFlags.getOverflow()) {
         this.offsetPC();
     }
     else {
@@ -1187,7 +1193,7 @@ THUMBInstructionSet.prototype.BVS = function () {
 }
 THUMBInstructionSet.prototype.BVC = function () {
     //Branch if Overflow Clear:
-    if (!this.CPSR.getOverflow()) {
+    if (!this.branchFlags.getOverflow()) {
         this.offsetPC();
     }
     else {
@@ -1197,7 +1203,7 @@ THUMBInstructionSet.prototype.BVC = function () {
 }
 THUMBInstructionSet.prototype.BHI = function () {
     //Branch if Carry & Non-Zero:
-    if (this.CPSR.getCarry() && !this.CPSR.getZero()) {
+    if (this.branchFlags.getCarry() && !this.branchFlags.getZero()) {
         this.offsetPC();
     }
     else {
@@ -1207,7 +1213,7 @@ THUMBInstructionSet.prototype.BHI = function () {
 }
 THUMBInstructionSet.prototype.BLS = function () {
     //Branch if Carry Clear or is Zero Set:
-    if (!this.CPSR.getCarry() || this.CPSR.getZero()) {
+    if (!this.branchFlags.getCarry() || this.branchFlags.getZero()) {
         this.offsetPC();
     }
     else {
@@ -1217,7 +1223,7 @@ THUMBInstructionSet.prototype.BLS = function () {
 }
 THUMBInstructionSet.prototype.BGE = function () {
     //Branch if Negative equal to Overflow
-    if (this.CPSR.getNegative() == this.CPSR.getOverflow()) {
+    if (this.branchFlags.getNegative() == this.branchFlags.getOverflow()) {
         this.offsetPC();
     }
     else {
@@ -1227,7 +1233,7 @@ THUMBInstructionSet.prototype.BGE = function () {
 }
 THUMBInstructionSet.prototype.BLT = function () {
     //Branch if Negative NOT equal to Overflow
-    if (this.CPSR.getNegative() != this.CPSR.getOverflow()) {
+    if (this.branchFlags.getNegative() != this.branchFlags.getOverflow()) {
         this.offsetPC();
     }
     else {
@@ -1237,7 +1243,7 @@ THUMBInstructionSet.prototype.BLT = function () {
 }
 THUMBInstructionSet.prototype.BGT = function () {
     //Branch if Zero Clear and Negative equal to Overflow
-    if (!this.CPSR.getZero() && this.CPSR.getNegative() == this.CPSR.getOverflow()) {
+    if (!this.branchFlags.getZero() && this.branchFlags.getNegative() == this.branchFlags.getOverflow()) {
         this.offsetPC();
     }
     else {
@@ -1247,7 +1253,7 @@ THUMBInstructionSet.prototype.BGT = function () {
 }
 THUMBInstructionSet.prototype.BLE = function () {
     //Branch if Zero Set or Negative NOT equal to Overflow
-    if (this.CPSR.getZero() || this.CPSR.getNegative() != this.CPSR.getOverflow()) {
+    if (this.branchFlags.getZero() || this.branchFlags.getNegative() != this.branchFlags.getOverflow()) {
         this.offsetPC();
     }
     else {
@@ -1267,7 +1273,7 @@ THUMBInstructionSet.prototype.B = function () {
 THUMBInstructionSet.prototype.BLsetup = function () {
     //Brank with Link (High offset)
     //Update the link register to branch address:
-    this.writeLR(((this.readPC() | 0) + (((this.execute & 0x7FF) << 21) >> 9)) | 0);
+    this.writeLR(((this.readPC() | 0) + ((this.execute << 21) >> 9)) | 0);
     //Update PC:
     this.incrementProgramCounter();
 }

@@ -44,7 +44,7 @@ GameBoyAdvanceIRQ.prototype.writeIME = function (data) {
     this.checkForIRQFire();
 }
 GameBoyAdvanceIRQ.prototype.readIME = function () {
-    return (this.IME ? 0xFF : 0xFE);
+    return (this.IME ? 1 : 0);
 }
 GameBoyAdvanceIRQ.prototype.writeIE0 = function (data) {
     data = data | 0;

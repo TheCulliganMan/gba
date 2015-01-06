@@ -143,7 +143,7 @@ GameBoyAdvanceChannel3Synth.prototype.computeAudioChannel = function () {
 
 GameBoyAdvanceChannel3Synth.prototype.readSOUND3CNT_L = function () {
     //NR30:
-    return 0x1F | this.nr30;
+    return this.nr30 | 0;
 }
 GameBoyAdvanceChannel3Synth.prototype.writeSOUND3CNT_L = function (data) {
     data = data | 0;
@@ -168,7 +168,7 @@ GameBoyAdvanceChannel3Synth.prototype.writeSOUND3CNT_H0 = function (data) {
 }
 GameBoyAdvanceChannel3Synth.prototype.readSOUND3CNT_H = function () {
     //NR32:
-    return 0x1F | this.nr32;
+    return this.nr32 | 0;
 }
 GameBoyAdvanceChannel3Synth.prototype.writeSOUND3CNT_H1 = function (data) {
     data = data | 0;
@@ -199,7 +199,7 @@ GameBoyAdvanceChannel3Synth.prototype.writeSOUND3CNT_X0 = function (data) {
 }
 GameBoyAdvanceChannel3Synth.prototype.readSOUND3CNT_X = function () {
     //NR34:
-    return 0xBF | this.nr34;
+    return this.nr34 | 0;
 }
 GameBoyAdvanceChannel3Synth.prototype.writeSOUND3CNT_X1 = function (data) {
     data = data | 0;

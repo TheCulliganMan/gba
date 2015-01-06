@@ -199,24 +199,6 @@ GameBoyAdvanceChannel4Synth.prototype.writeSOUND4CNT_L0 = function (data) {
 GameBoyAdvanceChannel4Synth.prototype.writeSOUND4CNT_L1 = function (data) {
     data = data | 0;
     //NR42:
-    if (this.Enabled && (this.envelopeSweeps | 0) == 0) {
-        //Zombie Volume PAPU Bug:
-        if (((this.nr42 ^ data) & 0x8) == 0x8) {
-            if ((this.nr42 & 0x8) == 0) {
-                if ((this.nr42 & 0x7) == 0x7) {
-                    this.envelopeVolume = ((this.envelopeVolume | 0) + 2) | 0;
-                }
-                else {
-                    this.envelopeVolume = ((this.envelopeVolume | 0) + 1) | 0;
-                }
-            }
-            this.envelopeVolume = (16 - (this.envelopeVolume | 0)) & 0xF;
-        }
-        else if ((this.nr42 & 0xF) == 0x8) {
-            this.envelopeVolume = (1 + (this.envelopeVolume | 0)) & 0xF;
-        }
-        this.currentVolume = this.envelopeVolume << (this.VolumeShifter | 0);
-    }
     this.envelopeType = ((data & 0x08) == 0x08);
     this.nr42 = data | 0;
     this.volumeEnableCheck();
@@ -263,5 +245,5 @@ GameBoyAdvanceChannel4Synth.prototype.writeSOUND4CNT_H1 = function (data) {
 }
 GameBoyAdvanceChannel4Synth.prototype.readSOUND4CNT_H1 = function () {
     //NR44:
-    return 0xBF | this.nr44;
+    return this.nr44 | 0;
 }

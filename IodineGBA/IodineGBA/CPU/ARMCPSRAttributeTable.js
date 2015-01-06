@@ -37,6 +37,9 @@ function ARMCPSRAttributeTable() {
     function getNegative() {
         return (negative < 0);
     };
+    function getNegativeInt() {
+        return negative | 0;
+    };
     function setZero(toSet) {
         if (!!toSet) {
             zero = 0;
@@ -57,8 +60,17 @@ function ARMCPSRAttributeTable() {
     function getZero() {
         return (zero == 0);
     };
+    function getZeroInt() {
+        return zero | 0;
+    };
     function setOverflow(toSet) {
         overflow = !!toSet;
+    };
+    function setOverflowTrue() {
+        overflow = true;
+    };
+    function setOverflowFalse() {
+        overflow = false;
     };
     function getOverflow() {
         return !!overflow;
@@ -187,12 +199,16 @@ function ARMCPSRAttributeTable() {
         "setNegativeInt":setNegativeInt,
         "setNegativeFalse":setNegativeFalse,
         "getNegative":getNegative,
+        "getNegativeInt":getNegativeInt,
         "setZero":setZero,
         "setZeroInt":setZeroInt,
         "setZeroTrue":setZeroTrue,
         "setZeroFalse":setZeroFalse,
         "getZero":getZero,
+        "getZeroInt":getZeroInt,
         "setOverflow":setOverflow,
+        "setOverflowTrue":setOverflowTrue,
+        "setOverflowFalse":setOverflowFalse,
         "getOverflow":getOverflow,
         "setCarry":setCarry,
         "setCarryInt":setCarryInt,

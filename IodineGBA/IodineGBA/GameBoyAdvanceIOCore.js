@@ -66,24 +66,24 @@ GameBoyAdvanceIO.prototype.enter = function (CPUCyclesTotal) {
     this.cyclesOveriteratedPreviously = this.cyclesToIterate | 0;
 }
 GameBoyAdvanceIO.prototype.run = function () {
-	//Clock through the state machine:
-	while (true) {
-		//Dispatch to optimized run loops:
-		switch (this.systemStatus & 0x42) {
-			case 0:
-				//ARM instruction set:
-				this.runARM();
-				break;
-			case 0x2:
-				//THUMB instruction sey:
-				this.runTHUMB();
-				break;
-			default:
-				//End of stepping:
-				this.deflagIterationEnd();
-				return;
-		}
-	}
+    //Clock through the state machine:
+    while (true) {
+        //Dispatch to optimized run loops:
+        switch (this.systemStatus & 0x42) {
+            case 0:
+                //ARM instruction set:
+                this.runARM();
+                break;
+            case 0x2:
+                //THUMB instruction sey:
+                this.runTHUMB();
+                break;
+            default:
+                //End of stepping:
+                this.deflagIterationEnd();
+                return;
+        }
+    }
 }
 GameBoyAdvanceIO.prototype.runARM = function () {
     //Clock through the state machine:
@@ -126,7 +126,7 @@ GameBoyAdvanceIO.prototype.runARM = function () {
                         this.handleHalt();
                         break;
                     default: //Handle Stop State
-						//End of Stepping and/or CPU run loop switch:
+                        //End of Stepping and/or CPU run loop switch:
                         if ((this.systemStatus & 0x42) != 0) {
                             return;
                         }
@@ -136,7 +136,7 @@ GameBoyAdvanceIO.prototype.runARM = function () {
     }
 }
 GameBoyAdvanceIO.prototype.runTHUMB = function () {
-	//Clock through the state machine:
+    //Clock through the state machine:
     while (true) {
         //Handle the current system state selected:
         switch (this.systemStatus | 0) {
@@ -176,11 +176,11 @@ GameBoyAdvanceIO.prototype.runTHUMB = function () {
                         this.handleHalt();
                         break;
                     default: //Handle Stop State
-						//End of Stepping and/or CPU run loop switch:
-						if ((this.systemStatus & 0x42) != 0x2) {
-							return;
-						}
-						this.handleStop();
+                        //End of Stepping and/or CPU run loop switch:
+                        if ((this.systemStatus & 0x42) != 0x2) {
+                            return;
+                        }
+                        this.handleStop();
                 }
         }
     }
@@ -208,6 +208,7 @@ GameBoyAdvanceIO.prototype.updateCoreTwice = function () {
     }
 }
 GameBoyAdvanceIO.prototype.updateCoreSpill = function () {
+    //Invalidate & recompute new event times:
     this.updateCoreClocking();
     this.updateCoreEventTime();
 }
@@ -372,15 +373,15 @@ GameBoyAdvanceIO.prototype.deflagIterationEnd = function () {
     this.systemStatus = this.systemStatus & 0x3F;
 }
 GameBoyAdvanceIO.prototype.isStopped = function () {
+    //Sound system uses this to emulate a unpowered audio output:
     return ((this.systemStatus & 0x20) == 0x20);
 }
 GameBoyAdvanceIO.prototype.inDMA = function () {
+    //Save system uses this to detect dma:
     return ((this.systemStatus & 0x8) == 0x8);
 }
-GameBoyAdvanceIO.prototype.inTHUMB = function () {
-    return ((this.systemStatus & 0x2) == 0x2);
-}
 GameBoyAdvanceIO.prototype.getCurrentFetchValue = function () {
+    //Last valid value output for bad reads:
     var fetch = 0;
     if ((this.systemStatus & 0x8) == 0) {
         fetch = this.cpu.getCurrentFetchValue() | 0;

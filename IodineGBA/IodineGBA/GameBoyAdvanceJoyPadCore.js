@@ -22,8 +22,6 @@ function GameBoyAdvanceJoyPad(IOCore) {
 GameBoyAdvanceJoyPad.prototype.initialize = function () {
     this.keyInput = 0x3FF;
     this.keyInterrupt = 0;
-    this.keyIRQType = false;
-    this.keyIRQEnabled = false;
 }
 GameBoyAdvanceJoyPad.prototype.keyPress = function (keyPressed) {
     switch (keyPressed.toUpperCase()) {
@@ -60,10 +58,7 @@ GameBoyAdvanceJoyPad.prototype.keyPress = function (keyPressed) {
         default:
             return;
     }
-    if (this.keyIRQEnabled) {
-        this.checkForIRQ();
-    }
-    this.IOCore.deflagStop();
+    this.checkForMatch();
 }
 GameBoyAdvanceJoyPad.prototype.keyRelease = function (keyReleased) {
     switch (keyReleased.toUpperCase()) {
@@ -100,17 +95,22 @@ GameBoyAdvanceJoyPad.prototype.keyRelease = function (keyReleased) {
         default:
             return;
     }
-    if (this.keyIRQEnabled) {
+    this.checkForMatch();
+}
+GameBoyAdvanceJoyPad.prototype.checkForMatch = function () {
+    if ((this.keyInterrupt & 0x8000) == 0x8000) {
+        if (((~this.keyInput) & this.keyInterrupt & 0x3FF) == (this.keyInterrupt & 0x3FF)) {
+            this.IOCore.deflagStop();
+            this.checkForIRQ();
+        }
+    }
+    else if (((~this.keyInput) & this.keyInterrupt & 0x3FF) != 0) {
+        this.IOCore.deflagStop();
         this.checkForIRQ();
     }
 }
 GameBoyAdvanceJoyPad.prototype.checkForIRQ = function () {
-    if (this.keyIRQType) {
-        if (((~this.keyInput) & this.keyInterrupt & 0x3FF) == (this.keyInterrupt & 0x3FF)) {
-            this.IOCore.irq.requestIRQ(0x1000);
-        }
-    }
-    else if (((~this.keyInput) & this.keyInterrupt & 0x3FF) != 0) {
+    if ((this.keyInterrupt & 0x4000) == 0x4000) {
         this.IOCore.irq.requestIRQ(0x1000);
     }
 }
@@ -122,21 +122,21 @@ GameBoyAdvanceJoyPad.prototype.readKeyStatus0 = function () {
     return this.keyInput & 0xFF;
 }
 GameBoyAdvanceJoyPad.prototype.readKeyStatus1 = function () {
-    return ((this.keyInput >> 8) & 0x3) | 0xFC;
+    return (this.keyInput >> 8) & 0x3;
 }
 GameBoyAdvanceJoyPad.prototype.writeKeyControl0 = function (data) {
-    this.keyInterrupt &= 0x300;
-    this.keyInterrupt |= data;
+    data = data | 0;
+    this.keyInterrupt = this.keyInterrupt & 0xC300;
+    this.keyInterrupt = this.keyInterrupt | data;
 }
 GameBoyAdvanceJoyPad.prototype.readKeyControl0 = function () {
     return this.keyInterrupt & 0xFF;
 }
 GameBoyAdvanceJoyPad.prototype.writeKeyControl1 = function (data) {
-    this.keyInterrupt &= 0xFF;
-    this.keyInterrupt |= data << 8;
-    this.keyIRQType = (data > 0x7F);
-    this.keyIRQEnabled = ((data & 0x40) == 0x40);
+    data = data | 0;
+    this.keyInterrupt = this.keyInterrupt & 0xFF;
+    this.keyInterrupt = this.keyInterrupt | (data << 8);
 }
 GameBoyAdvanceJoyPad.prototype.readKeyControl1 = function () {
-    return ((this.keyInterrupt >> 8) & 0xC3) | 0x3C;
+    return (this.keyInterrupt >> 8) & 0xC3;
 }
