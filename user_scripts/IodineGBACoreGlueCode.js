@@ -27,6 +27,7 @@ var games = {
     "frogger2":"Frogger's Adventures - Temple of the Frog",
     "frogger3":"Frogger's Adventures 2 - The Lost Wand",
     "gamewatch4":"Game & Watch Gallery 4",
+    "goldensun":"Golden Sun",
     "gunstar_super_heroes":"Gunstar Super Heroes",
     "kirbymirror":"Kirby & The Amazing Mirror",
     "kirbynightmare":"Kirby: Nightmare in Dreamland",

@@ -155,13 +155,6 @@ GameBoyAdvanceDMA3.prototype.enableDMAChannel = function () {
         //Flag immediate DMA transfers for processing now:
         this.pending = this.DMA_REQUEST_TYPE.IMMEDIATE | 0;
     }
-    else if ((this.enabled | 0) == (this.DMA_REQUEST_TYPE.DISPLAY_SYNC | 0)) {
-        //Only enable display sync if set on line 162:
-        if ((this.DMACore.IOCore.gfx.currentScanLine | 0) != 162) {
-            this.enabled = 0;
-            return;
-        }
-    }
     //Shadow copy the word count:
     this.wordCountShadow = this.wordCount | 0;
     //Shadow copy the source address:

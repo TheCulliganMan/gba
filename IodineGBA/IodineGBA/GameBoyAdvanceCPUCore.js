@@ -562,7 +562,7 @@ GameBoyAdvanceCPU.prototype.performMUL64 = function (rs, rd) {
         this.IOCore.wait.CPUInternalCyclePrefetch(5);
     }
     //Solve for the high word (Do FPU double divide to bring down high word into the low word):
-    this.mul64ResultHigh = ((rs * rd) / 0x100000000) | 0;
+    this.mul64ResultHigh = Math.floor((rs * rd) / 0x100000000) | 0;
     this.mul64ResultLow = this.calculateMUL32(rs | 0, rd | 0) | 0;
 }
 GameBoyAdvanceCPU.prototype.performMLA64 = function (rs, rd, mlaHigh, mlaLow) {
@@ -584,17 +584,10 @@ GameBoyAdvanceCPU.prototype.performMLA64 = function (rs, rd, mlaHigh, mlaLow) {
         this.IOCore.wait.CPUInternalCyclePrefetch(6);
     }
     //Solve for the high word (Do FPU double divide to bring down high word into the low word):
-    this.mul64ResultHigh = ((((rs * rd) + (mlaLow >>> 0)) / 0x100000000) + (mlaHigh >>> 0)) | 0;
-    /*
-        We have to split up the 64 bit multiplication,
-        as JavaScript does multiplication on the FPU
-        as double floats, which drops the low bits
-        rather than the high bits.
-    */
-    var lowMul = (rs & 0xFFFF) * rd;
-    var highMul = (rs >> 16) * rd;
-    //Cut off bits above bit 31 and return with proper sign:
-    this.mul64ResultLow = (((highMul << 16) >>> 0) + (lowMul >>> 0) + (mlaLow >>> 0)) | 0;
+    var mulTop = Math.floor((rs * rd) / 0x100000000) | 0;
+    var mulBottom = this.calculateMUL32(rs | 0, rd | 0) | 0;
+    this.mul64ResultHigh = ((mulTop | 0) + (mlaHigh | 0)) | 0;
+    this.mul64ResultLow = ((mulBottom | 0) + (mlaLow | 0)) | 0;
 }
 GameBoyAdvanceCPU.prototype.performUMUL64 = function (rs, rd) {
     rs = rs | 0;
@@ -612,21 +605,9 @@ GameBoyAdvanceCPU.prototype.performUMUL64 = function (rs, rd) {
     else {
         this.IOCore.wait.CPUInternalCyclePrefetch(5);
     }
-    //Type convert to uint32:
-    rs >>>= 0;
-    rd >>>= 0;
     //Solve for the high word (Do FPU double divide to bring down high word into the low word):
-    this.mul64ResultHigh = ((rs * rd) / 0x100000000) | 0;
-    /*
-        We have to split up the 64 bit multiplication,
-        as JavaScript does multiplication on the FPU
-        as double floats, which drops the low bits
-        rather than the high bits.
-    */
-    var lowMul = (rs & 0xFFFF) * rd;
-    var highMul = (rs >> 16) * rd;
-    //Cut off bits above bit 31 and return with proper sign:
-    this.mul64ResultLow = ((highMul << 16) + lowMul) | 0;
+    this.mul64ResultHigh = (((rs >>> 0) * (rd >>> 0)) / 0x100000000) | 0;
+    this.mul64ResultLow = this.calculateMUL32(rs | 0, rd | 0) | 0;
 }
 GameBoyAdvanceCPU.prototype.performUMLA64 = function (rs, rd, mlaHigh, mlaLow) {
     rs = rs | 0;
@@ -646,21 +627,11 @@ GameBoyAdvanceCPU.prototype.performUMLA64 = function (rs, rd, mlaHigh, mlaLow) {
     else {
         this.IOCore.wait.CPUInternalCyclePrefetch(6);
     }
-    //Type convert to uint32:
-    rs >>>= 0;
-    rd >>>= 0;
     //Solve for the high word (Do FPU double divide to bring down high word into the low word):
-    this.mul64ResultHigh = ((((rs * rd) + mlaLow) / 0x100000000) + mlaHigh) | 0;
-    /*
-        We have to split up the 64 bit multiplication,
-        as JavaScript does multiplication on the FPU
-        as double floats, which drops the low bits
-        rather than the high bits.
-    */
-    var lowMul = (rs & 0xFFFF) * rd;
-    var highMul = (rs >> 16) * rd;
-    //Cut off bits above bit 31 and return with proper sign:
-    this.mul64ResultLow = ((highMul << 16) + lowMul + mlaLow) | 0;
+    var mulTop = (((rs >>> 0) * (rd >>> 0)) / 0x100000000) | 0;
+    var mulBottom = this.calculateMUL32(rs | 0, rd | 0) | 0;
+    this.mul64ResultHigh = ((mulTop | 0) + (mlaHigh | 0)) | 0;
+    this.mul64ResultLow = ((mulBottom | 0) + (mlaLow | 0)) | 0;
 }
 GameBoyAdvanceCPU.prototype.write32 = function (address, data) {
     address = address | 0;

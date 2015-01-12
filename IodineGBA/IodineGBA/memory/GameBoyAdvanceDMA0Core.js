@@ -90,7 +90,7 @@ GameBoyAdvanceDMA0.prototype.writeDMADestination3 = function (data) {
 }
 GameBoyAdvanceDMA0.prototype.writeDMAWordCount0 = function (data) {
     data = data | 0;
-    this.wordCount = this.wordCount & 0xFF00;
+    this.wordCount = this.wordCount & 0x3F00;
     this.wordCount = this.wordCount | data;
 }
 GameBoyAdvanceDMA0.prototype.writeDMAWordCount1 = function (data) {
