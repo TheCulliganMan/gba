@@ -585,9 +585,8 @@ GameBoyAdvanceCPU.prototype.performMLA64 = function (rs, rd, mlaHigh, mlaLow) {
     }
     //Solve for the high word (Do FPU double divide to bring down high word into the low word):
     var mulTop = Math.floor((rs * rd) / 0x100000000) | 0;
-    var mulBottom = this.calculateMUL32(rs | 0, rd | 0) | 0;
-    var dirty = (mulBottom >>> 0) + (mlaLow >>> 0);
-    this.mul64ResultHigh = ((mulTop | 0) + (mlaHigh | 0) + (dirty / 0x100000000)) | 0;
+    var dirty = (this.calculateMUL32(rs | 0, rd | 0) >>> 0) + (mlaLow >>> 0);
+    this.mul64ResultHigh = ((mulTop | 0) + (mlaHigh | 0) + Math.floor(dirty / 0x100000000)) | 0;
     this.mul64ResultLow = dirty | 0;
 }
 GameBoyAdvanceCPU.prototype.performUMUL64 = function (rs, rd) {
@@ -629,10 +628,10 @@ GameBoyAdvanceCPU.prototype.performUMLA64 = function (rs, rd, mlaHigh, mlaLow) {
         this.IOCore.wait.CPUInternalCyclePrefetch(6);
     }
     //Solve for the high word (Do FPU double divide to bring down high word into the low word):
-    var mulTop = (((rs >>> 0) * (rd >>> 0)) / 0x100000000) | 0;
-    var mulBottom = this.calculateMUL32(rs | 0, rd | 0) | 0;
-    this.mul64ResultHigh = ((mulTop | 0) + (mlaHigh | 0)) | 0;
-    this.mul64ResultLow = ((mulBottom | 0) + (mlaLow | 0)) | 0;
+    var mulTop = Math.floor(((rs >>> 0) * (rd >>> 0)) / 0x100000000) | 0;
+    var dirty = (this.calculateMUL32(rs | 0, rd | 0) >>> 0) + (mlaLow >>> 0);
+    this.mul64ResultHigh = ((mulTop | 0) + (mlaHigh | 0) + Math.floor(dirty / 0x100000000)) | 0;
+    this.mul64ResultLow = dirty | 0;
 }
 GameBoyAdvanceCPU.prototype.write32 = function (address, data) {
     address = address | 0;
