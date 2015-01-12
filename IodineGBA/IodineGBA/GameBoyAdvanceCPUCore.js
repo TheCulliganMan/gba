@@ -520,7 +520,7 @@ GameBoyAdvanceCPU.prototype.performMUL32 = function (rs, rd) {
         this.IOCore.wait.CPUInternalCyclePrefetch(2);
     }
     else if ((rd >>> 24) == 0 || (rd >>> 24) == 0xFF) {
-        this.IOCore.wait.CPUInternalCyclePrefetch(4);
+        this.IOCore.wait.CPUInternalCyclePrefetch(3);
     }
     else {
         this.IOCore.wait.CPUInternalCyclePrefetch(4);
