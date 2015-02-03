@@ -387,7 +387,7 @@ GameBoyAdvanceTimer.prototype.nextTimer0Overflow = function (numOverflows) {
     }
     return -1;
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceTimer.prototype.nextTimer0OverflowSingle = function () {
         var eventTime = -1;

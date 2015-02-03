@@ -39,7 +39,7 @@ GameBoyAdvanceAffineBGRenderer.prototype.initialize = function () {
     this.priorityPreprocess();
     this.offsetReferenceCounters();
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceAffineBGRenderer.prototype.renderScanLine = function (line, BGObject) {
         line = line | 0;

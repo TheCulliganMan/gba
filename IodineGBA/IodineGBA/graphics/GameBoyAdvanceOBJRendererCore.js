@@ -17,7 +17,6 @@
  */
 function GameBoyAdvanceOBJRenderer(gfx) {
     this.gfx = gfx;
-    this.transparency = this.gfx.transparency;
     this.paletteOBJ256 = this.gfx.paletteOBJ256;
     this.paletteOBJ16 = this.gfx.paletteOBJ16;
     this.VRAM = this.gfx.VRAM;
@@ -40,26 +39,45 @@ GameBoyAdvanceOBJRenderer.prototype.lookupYSize = [
     16, 32, 32, 64
 ];
 if (__VIEWS_SUPPORTED__) {
-    GameBoyAdvanceOBJRenderer.prototype.initialize = function () {
-        this.VRAM32 = this.gfx.VRAM32;
-        this.OAMRAM = getUint8Array(0x400);
-        this.OAMRAM16 = getUint16View(this.OAMRAM);
-        this.OAMRAM32 = getInt32View(this.OAMRAM);
-        this.scratchBuffer = getInt32Array(240);
-        this.scratchWindowBuffer = getInt32Array(240);
-        this.scratchOBJBuffer = getInt32Array(128);
-        this.clearingBuffer = getInt32Array(240);
-        this.targetBuffer = null;
-        this.initializeClearingBuffer();
-        this.initializeMatrixStorage();
-        this.initializeOAMTable();
+    if (typeof getUint8Array(1).fill == "function") {
+        GameBoyAdvanceOBJRenderer.prototype.initialize = function () {
+            this.VRAM32 = this.gfx.VRAM32;
+            this.OAMRAM = getUint8Array(0x400);
+            this.OAMRAM16 = getUint16View(this.OAMRAM);
+            this.OAMRAM32 = getInt32View(this.OAMRAM);
+            this.scratchBuffer = getInt32Array(240);
+            this.scratchWindowBuffer = getInt32Array(240);
+            this.scratchOBJBuffer = getInt32Array(128);
+            this.targetBuffer = null;
+            this.OBJMatrixParameters = getInt32Array(0x80);
+            this.initializeOAMTable();
+        }
+        GameBoyAdvanceOBJRenderer.prototype.clearScratch = function () {
+            this.targetBuffer.fill(0x3800000);
+        }
     }
-    GameBoyAdvanceOBJRenderer.prototype.clearScratch = function () {
-        this.targetBuffer.set(this.clearingBuffer);
-    }
-    GameBoyAdvanceOBJRenderer.prototype.initializeClearingBuffer = function () {
-        for (var position = 0; position < 240; ++position) {
-            this.clearingBuffer[position] = this.transparency;
+    else {
+        GameBoyAdvanceOBJRenderer.prototype.initialize = function () {
+            this.VRAM32 = this.gfx.VRAM32;
+            this.OAMRAM = getUint8Array(0x400);
+            this.OAMRAM16 = getUint16View(this.OAMRAM);
+            this.OAMRAM32 = getInt32View(this.OAMRAM);
+            this.scratchBuffer = getInt32Array(240);
+            this.scratchWindowBuffer = getInt32Array(240);
+            this.scratchOBJBuffer = getInt32Array(128);
+            this.clearingBuffer = getInt32Array(240);
+            this.targetBuffer = null;
+            this.initializeClearingBuffer();
+            this.OBJMatrixParameters = getInt32Array(0x80);
+            this.initializeOAMTable();
+        }
+        GameBoyAdvanceOBJRenderer.prototype.clearScratch = function () {
+            this.targetBuffer.set(this.clearingBuffer);
+        }
+        GameBoyAdvanceOBJRenderer.prototype.initializeClearingBuffer = function () {
+            for (var position = 0; position < 240; ++position) {
+                this.clearingBuffer[position] = 0x3800000;
+            }
         }
     }
 }
@@ -70,25 +88,61 @@ else {
         this.scratchWindowBuffer = getInt32Array(240);
         this.scratchOBJBuffer = getInt32Array(128);
         this.targetBuffer = null;
-        this.initializeMatrixStorage();
+        this.OBJMatrixParameters = getInt32Array(0x80);
         this.initializeOAMTable();
     }
     GameBoyAdvanceOBJRenderer.prototype.clearScratch = function () {
         for (var position = 0; position < 240; ++position) {
-            this.targetBuffer[position] = this.transparency;
+            this.targetBuffer[position] = 0x3800000;
         }
-    }
-}
-GameBoyAdvanceOBJRenderer.prototype.initializeMatrixStorage = function () {
-    this.OBJMatrixParameters = [];
-    for (var index = 0; index < 0x20;) {
-        this.OBJMatrixParameters[index++] = getInt32Array(0x4);
     }
 }
 GameBoyAdvanceOBJRenderer.prototype.initializeOAMTable = function () {
     this.OAMTable = [];
     for (var spriteNumber = 0; (spriteNumber | 0) < 128; spriteNumber = ((spriteNumber | 0) + 1) | 0) {
-        this.OAMTable[spriteNumber | 0] = new GameBoyAdvanceOAMAttributeTable();
+        this.OAMTable[spriteNumber | 0] = this.makeOAMAttributeTable();
+    }
+}
+if (typeof TypedObject == "object" && typeof TypedObject.StructType == "object") {
+    GameBoyAdvanceOBJRenderer.prototype.makeOAMAttributeTable = function () {
+        return new TypedObject.StructType({
+                                          ycoord:TypedObject.int32,
+                                          matrix2D:TypedObject.int32,
+                                          doubleSizeOrDisabled:TypedObject.int32,
+                                          mode:TypedObject.int32,
+                                          mosaic:TypedObject.int32,
+                                          monolithicPalette:TypedObject.int32,
+                                          shape:TypedObject.int32,
+                                          xcoord:TypedObject.int32,
+                                          matrixParameters:TypedObject.int32,
+                                          horizontalFlip:TypedObject.int32,
+                                          verticalFlip:TypedObject.int32,
+                                          size:TypedObject.int32,
+                                          tileNumber:TypedObject.int32,
+                                          priority:TypedObject.int32,
+                                          paletteNumber:TypedObject.int32
+                                          });
+    }
+}
+else {
+    GameBoyAdvanceOBJRenderer.prototype.makeOAMAttributeTable = function () {
+        return {
+        ycoord:0,
+        matrix2D:0,
+        doubleSizeOrDisabled:0,
+        mode:0,
+        mosaic:0,
+        monolithicPalette:0,
+        shape:0,
+        xcoord:0,
+        matrixParameters:0,
+        horizontalFlip:0,
+        verticalFlip:0,
+        size:0,
+        tileNumber:0,
+        priority:0,
+        paletteNumber:0
+        };
     }
 }
 GameBoyAdvanceOBJRenderer.prototype.renderScanLine = function (line) {
@@ -110,14 +164,14 @@ GameBoyAdvanceOBJRenderer.prototype.performRenderLoop = function (line, isOBJWin
 GameBoyAdvanceOBJRenderer.prototype.renderSprite = function (line, sprite, isOBJWindow) {
     line = line | 0;
     if (this.isDrawable(sprite, isOBJWindow)) {
-        if (sprite.mosaic) {
+        if ((sprite.mosaic | 0) != 0) {
             //Correct line number for mosaic:
-            line -= this.gfx.mosaicRenderer.getOBJMosaicYOffset(line | 0);
+            line = ((line | 0) - (this.gfx.mosaicRenderer.getOBJMosaicYOffset(line | 0) | 0)) | 0;
         }
         //Obtain horizontal size info:
-        var xSize = this.lookupXSize[(sprite.shape << 2) | sprite.size] << ((sprite.doubleSizeOrDisabled) ? 1 : 0);
+        var xSize = this.lookupXSize[(sprite.shape << 2) | sprite.size] << (sprite.doubleSizeOrDisabled | 0);
         //Obtain vertical size info:
-        var ySize = this.lookupYSize[(sprite.shape << 2) | sprite.size] << ((sprite.doubleSizeOrDisabled) ? 1 : 0);
+        var ySize = this.lookupYSize[(sprite.shape << 2) | sprite.size] << (sprite.doubleSizeOrDisabled | 0);
         //Obtain some offsets:
         var ycoord = sprite.ycoord | 0;
         var yOffset = ((line | 0) - (ycoord | 0)) | 0;
@@ -132,7 +186,7 @@ GameBoyAdvanceOBJRenderer.prototype.renderSprite = function (line, sprite, isOBJ
         //Make a sprite line:
         ySize = ((ySize | 0) - 1) | 0;
         if ((yOffset & ySize) == (yOffset | 0)) {
-            if (sprite.matrix2D) {
+            if ((sprite.matrix2D | 0) != 0) {
                 //Scale & Rotation:
                 this.renderMatrixSprite(sprite, xSize | 0, ((ySize | 0) + 1) | 0, yOffset | 0);
             }
@@ -149,7 +203,7 @@ GameBoyAdvanceOBJRenderer.prototype.renderSprite = function (line, sprite, isOBJ
         }
     }
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceOBJRenderer.prototype.renderMatrixSprite = function (sprite, xSize, ySize, yOffset) {
         xSize = xSize | 0;
@@ -157,30 +211,30 @@ if (!!Math.imul) {
         yOffset = yOffset | 0;
         var xDiff = (-(xSize >> 1)) | 0;
         var yDiff = ((yOffset | 0) - (ySize >> 1)) | 0;
-        var xSizeOriginal = (xSize >> ((sprite.doubleSizeOrDisabled) ? 1 : 0)) | 0;
+        var xSizeOriginal = xSize >> (sprite.doubleSizeOrDisabled | 0);
         var xSizeFixed = xSizeOriginal << 8;
-        var ySizeOriginal = (ySize >> ((sprite.doubleSizeOrDisabled) ? 1 : 0)) | 0;
+        var ySizeOriginal = ySize >> (sprite.doubleSizeOrDisabled | 0);
         var ySizeFixed = ySizeOriginal << 8;
-        var params = this.OBJMatrixParameters[sprite.matrixParameters | 0];
-        var dx = params[0] | 0;
-        var dmx = params[1] | 0;
-        var dy = params[2] | 0;
-        var dmy = params[3] | 0;
+        var dx = this.OBJMatrixParameters[sprite.matrixParameters | 0] | 0;
+        var dmx = this.OBJMatrixParameters[sprite.matrixParameters | 1] | 0;
+        var dy = this.OBJMatrixParameters[sprite.matrixParameters | 2] | 0;
+        var dmy = this.OBJMatrixParameters[sprite.matrixParameters | 3] | 0;
         var pa = Math.imul(dx | 0, xDiff | 0) | 0;
         var pb = Math.imul(dmx | 0, yDiff | 0) | 0;
         var pc = Math.imul(dy | 0, xDiff | 0) | 0;
         var pd = Math.imul(dmy | 0, yDiff | 0) | 0;
-        var x = ((pa | 0) + (pb | 0) + (xSizeFixed >> 1)) | 0;
-        var y = ((pc | 0) + (pd | 0) + (ySizeFixed >> 1)) | 0;
-        var tileNumber = sprite.tileNumber | 0;
+        var x = ((pa | 0) + (pb | 0)) | 0;
+        x = ((x | 0) + (xSizeFixed >> 1)) | 0;
+        var y = ((pc | 0) + (pd | 0)) | 0;
+        y = ((y | 0) + (ySizeFixed >> 1)) | 0;
         for (var position = 0; (position | 0) < (xSize | 0); position = (position + 1) | 0, x = ((x | 0) + (dx | 0)) | 0, y = ((y | 0) + (dy | 0)) | 0) {
             if ((x | 0) >= 0 && (y | 0) >= 0 && (x | 0) < (xSizeFixed | 0) && (y | 0) < (ySizeFixed | 0)) {
                 //Coordinates in range, fetch pixel:
-                this.scratchOBJBuffer[position | 0] = this.fetchMatrixPixel(sprite, tileNumber | 0, x >> 8, y >> 8, xSizeOriginal | 0) | 0;
+                this.scratchOBJBuffer[position | 0] = this.fetchMatrixPixel(sprite, x >> 8, y >> 8, xSizeOriginal | 0) | 0;
             }
             else {
                 //Coordinates outside of range, transparency defaulted:
-                this.scratchOBJBuffer[position | 0] = this.transparency | 0;
+                this.scratchOBJBuffer[position | 0] = 0x3800000;
             }
         }
     }
@@ -190,47 +244,46 @@ else {
     GameBoyAdvanceOBJRenderer.prototype.renderMatrixSprite = function (sprite, xSize, ySize, yOffset) {
         var xDiff = -(xSize >> 1);
         var yDiff = yOffset - (ySize >> 1);
-        var xSizeOriginal = xSize >> ((sprite.doubleSizeOrDisabled) ? 1 : 0);
+        var xSizeOriginal = xSize >> sprite.doubleSizeOrDisabled;
         var xSizeFixed = xSizeOriginal << 8;
-        var ySizeOriginal = ySize >> ((sprite.doubleSizeOrDisabled) ? 1 : 0);
+        var ySizeOriginal = ySize >> sprite.doubleSizeOrDisabled;
         var ySizeFixed = ySizeOriginal << 8;
-        var params = this.OBJMatrixParameters[sprite.matrixParameters];
-        var dx = params[0];
-        var dmx = params[1];
-        var dy = params[2];
-        var dmy = params[3];
+        var dx = this.OBJMatrixParameters[sprite.matrixParameters];
+        var dmx = this.OBJMatrixParameters[sprite.matrixParameters | 1];
+        var dy = this.OBJMatrixParameters[sprite.matrixParameters | 2];
+        var dmy = this.OBJMatrixParameters[sprite.matrixParameters | 3];
         var pa = dx * xDiff;
         var pb = dmx * yDiff;
         var pc = dy * xDiff;
         var pd = dmy * yDiff;
         var x = pa + pb + (xSizeFixed >> 1);
         var y = pc + pd + (ySizeFixed >> 1);
-        var tileNumber = sprite.tileNumber;
         for (var position = 0; position < xSize; ++position, x += dx, y += dy) {
             if (x >= 0 && y >= 0 && x < xSizeFixed && y < ySizeFixed) {
                 //Coordinates in range, fetch pixel:
-                this.scratchOBJBuffer[position] = this.fetchMatrixPixel(sprite, tileNumber, x >> 8, y >> 8, xSizeOriginal);
+                this.scratchOBJBuffer[position] = this.fetchMatrixPixel(sprite, x >> 8, y >> 8, xSizeOriginal);
             }
             else {
                 //Coordinates outside of range, transparency defaulted:
-                this.scratchOBJBuffer[position] = this.transparency;
+                this.scratchOBJBuffer[position] = 0x3800000;
             }
         }
+        
     }
 }
-GameBoyAdvanceOBJRenderer.prototype.fetchMatrixPixel = function (sprite, tileNumber, x, y, xSize) {
-    tileNumber = tileNumber | 0;
+GameBoyAdvanceOBJRenderer.prototype.fetchMatrixPixel = function (sprite, x, y, xSize) {
     x = x | 0;
     y = y | 0;
     xSize = xSize | 0;
-    var address = this.tileNumberToAddress(sprite, tileNumber | 0, xSize | 0, y | 0) | 0;
-    if (sprite.monolithicPalette) {
+    if ((sprite.monolithicPalette | 0) != 0) {
         //256 Colors / 1 Palette:
+        var address = this.tileNumberToAddress256(sprite.tileNumber | 0, xSize | 0, y | 0) | 0;
         address = ((address | 0) + (this.tileRelativeAddressOffset(x | 0, y | 0) | 0)) | 0;
         return this.paletteOBJ256[this.VRAM[address | 0] | 0] | 0;
     }
     else {
         //16 Colors / 16 palettes:
+        var address = this.tileNumberToAddress16(sprite.tileNumber | 0, xSize | 0, y | 0) | 0;
         address = ((address | 0) + ((this.tileRelativeAddressOffset(x | 0, y | 0) >> 1) | 0)) | 0;
         if ((x & 0x1) == 0) {
             return this.paletteOBJ16[sprite.paletteNumber | this.VRAM[address | 0] & 0xF] | 0;
@@ -249,18 +302,19 @@ GameBoyAdvanceOBJRenderer.prototype.renderNormalSprite = function (sprite, xSize
     xSize = xSize | 0;
     ySize = ySize | 0;
     yOffset = yOffset | 0;
-    if (sprite.verticalFlip) {
+    if ((sprite.verticalFlip | 0) != 0) {
         //Flip y-coordinate offset:
         yOffset = ((ySize | 0) - (yOffset | 0)) | 0;
     }
-    var address = this.tileNumberToAddress(sprite, sprite.tileNumber | 0, xSize | 0, yOffset | 0) | 0;
-    if (sprite.monolithicPalette) {
+    if ((sprite.monolithicPalette | 0) != 0) {
         //256 Colors / 1 Palette:
+        var address = this.tileNumberToAddress256(sprite.tileNumber | 0, xSize | 0, yOffset | 0) | 0;
         address = ((address | 0) + ((yOffset & 7) << 3)) | 0;
         this.render256ColorPaletteSprite(address | 0, xSize | 0);
     }
     else {
         //16 Colors / 16 palettes:
+        var address = this.tileNumberToAddress16(sprite.tileNumber | 0, xSize | 0, yOffset | 0) | 0;
         address = ((address | 0) + ((yOffset & 7) << 2)) | 0;
         this.render16ColorPaletteSprite(address | 0, xSize | 0, sprite.paletteNumber | 0);
     }
@@ -336,30 +390,37 @@ else {
         }
     }
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
-    GameBoyAdvanceOBJRenderer.prototype.tileNumberToAddress = function (sprite, tileNumber, xSize, yOffset) {
+    GameBoyAdvanceOBJRenderer.prototype.tileNumberToAddress256 = function (tileNumber, xSize, yOffset) {
         tileNumber = tileNumber | 0;
         xSize = xSize | 0;
         yOffset = yOffset | 0;
         if (!this.gfx.VRAMOneDimensional) {
             //2D Mapping (32 8x8 tiles by 32 8x8 tiles):
-            if (sprite.monolithicPalette) {
-                //Hardware ignores the LSB in this case:
-                tileNumber = tileNumber & -2;
-            }
+            //Hardware ignores the LSB in this case:
+            tileNumber = ((tileNumber & -2) + (Math.imul(yOffset >> 3, 0x20) | 0)) | 0;
+        }
+        else {
+            //1D Mapping:
+            //256 Color Palette:
+            tileNumber = ((tileNumber | 0) + (Math.imul(yOffset >> 3, xSize >> 2) | 0)) | 0;
+        }
+        //Starting address of currently drawing sprite line:
+        return ((tileNumber << 5) + 0x10000) | 0;
+    }
+    GameBoyAdvanceOBJRenderer.prototype.tileNumberToAddress16 = function (tileNumber, xSize, yOffset) {
+        tileNumber = tileNumber | 0;
+        xSize = xSize | 0;
+        yOffset = yOffset | 0;
+        if (!this.gfx.VRAMOneDimensional) {
+            //2D Mapping (32 8x8 tiles by 32 8x8 tiles):
             tileNumber = ((tileNumber | 0) + (Math.imul(yOffset >> 3, 0x20) | 0)) | 0;
         }
         else {
             //1D Mapping:
-            if (sprite.monolithicPalette) {
-                //256 Color Palette:
-                tileNumber = ((tileNumber | 0) + (Math.imul(yOffset >> 3, xSize >> 2) | 0)) | 0;
-            }
-            else {
-                //16 Color Palette:
-                tileNumber = ((tileNumber | 0) + (Math.imul(yOffset >> 3, xSize >> 3) | 0)) | 0;
-            }
+            //16 Color Palette:
+            tileNumber = ((tileNumber | 0) + (Math.imul(yOffset >> 3, xSize >> 3) | 0)) | 0;
         }
         //Starting address of currently drawing sprite line:
         return ((tileNumber << 5) + 0x10000) | 0;
@@ -367,24 +428,31 @@ if (!!Math.imul) {
 }
 else {
     //Math.imul not found, use the compatibility method:
-    GameBoyAdvanceOBJRenderer.prototype.tileNumberToAddress = function (sprite, tileNumber, xSize, yOffset) {
-        tileNumber = tileNumber | 0;
-        xSize = xSize | 0;
-        yOffset = yOffset | 0;
+    GameBoyAdvanceOBJRenderer.prototype.tileNumberToAddress256 = function (tileNumber, xSize, yOffset) {
         if (!this.gfx.VRAMOneDimensional) {
             //2D Mapping (32 8x8 tiles by 32 8x8 tiles):
-            if (sprite.monolithicPalette) {
-                //Hardware ignores the LSB in this case:
-                tileNumber &= -2;
-            }
+            //Hardware ignores the LSB in this case:
+            tileNumber &= -2;
             tileNumber += (yOffset >> 3) * 0x20;
         }
         else {
             //1D Mapping:
-            tileNumber += (yOffset >> 3) * (xSize >> ((sprite.monolithicPalette) ? 2 : 3));
+            tileNumber += (yOffset >> 3) * (xSize >> 2);
         }
         //Starting address of currently drawing sprite line:
-        return ((tileNumber << 5) + 0x10000) | 0;
+        return (tileNumber << 5) + 0x10000;
+    }
+    GameBoyAdvanceOBJRenderer.prototype.tileNumberToAddress16 = function (tileNumber, xSize, yOffset) {
+        if (!this.gfx.VRAMOneDimensional) {
+            //2D Mapping (32 8x8 tiles by 32 8x8 tiles):
+            tileNumber += (yOffset >> 3) * 0x20;
+        }
+        else {
+            //1D Mapping:
+            tileNumber += (yOffset >> 3) * (xSize >> 3);
+        }
+        //Starting address of currently drawing sprite line:
+        return (tileNumber << 5) + 0x10000;
     }
 }
 GameBoyAdvanceOBJRenderer.prototype.markSemiTransparent = function (xSize) {
@@ -401,14 +469,14 @@ GameBoyAdvanceOBJRenderer.prototype.outputSpriteToScratch = function (sprite, xS
         xcoord = ((xcoord | 0) - 0x200) | 0;
     }
     //Perform the mosaic transform:
-    if (sprite.mosaic) {
+    if ((sprite.mosaic | 0) != 0) {
         this.gfx.mosaicRenderer.renderOBJMosaicHorizontal(this.scratchOBJBuffer, xcoord | 0, xSize | 0);
     }
     //Resolve end point:
     var xcoordEnd = Math.min(((xcoord | 0) + (xSize | 0)) | 0, 240) | 0;
     //Flag for compositor to ID the pixels as OBJ:
     var bitFlags = (sprite.priority << 23) | 0x100000;
-    if (!sprite.horizontalFlip || sprite.matrix2D) {
+    if ((sprite.horizontalFlip | 0) == 0 || (sprite.matrix2D | 0) != 0) {
         //Normal:
         for (var xSource = 0; (xcoord | 0) < (xcoordEnd | 0); xcoord = ((xcoord | 0) + 1) | 0, xSource = ((xSource | 0) + 1) | 0) {
             var pixel = bitFlags | this.scratchOBJBuffer[xSource | 0];
@@ -432,7 +500,7 @@ GameBoyAdvanceOBJRenderer.prototype.outputSpriteToScratch = function (sprite, xS
 GameBoyAdvanceOBJRenderer.prototype.isDrawable = function (sprite, doWindowOBJ) {
     //Make sure we pass some checks that real hardware does:
     if (((sprite.mode | 0) < 2 && !doWindowOBJ) || (doWindowOBJ && (sprite.mode | 0) == 2)) {
-        if (!sprite.doubleSizeOrDisabled || sprite.matrix2D) {
+        if ((sprite.doubleSizeOrDisabled | 0) == 0 || (sprite.matrix2D | 0) != 0) {
             if ((sprite.shape | 0) < 3) {
                 if ((this.gfx.BGMode | 0) < 3 || (sprite.tileNumber | 0) >= 0x200) {
                     return true;
@@ -454,19 +522,19 @@ if (__LITTLE_ENDIAN__) {
                 //Attrib 0:
             case 0:
                 OAMTable.ycoord = data & 0xFF;
-                OAMTable.matrix2D = ((data & 0x100) == 0x100);
-                OAMTable.doubleSizeOrDisabled = ((data & 0x200) == 0x200);
+                OAMTable.matrix2D = data & 0x100;
+                OAMTable.doubleSizeOrDisabled = (data & 0x200) >> 9;
                 OAMTable.mode = (data >> 10) & 0x3;
-                OAMTable.mosaic = ((data & 0x1000) == 0x1000);
-                OAMTable.monolithicPalette = ((data & 0x2000) == 0x2000);
+                OAMTable.mosaic = data & 0x1000;
+                OAMTable.monolithicPalette = data & 0x2000;
                 OAMTable.shape = data >> 14;
                 break;
                 //Attrib 1:
             case 1:
                 OAMTable.xcoord = data & 0x1FF;
-                OAMTable.matrixParameters = (data >> 9) & 0x1F;
-                OAMTable.horizontalFlip = ((data & 0x1000) == 0x1000);
-                OAMTable.verticalFlip = ((data & 0x2000) == 0x2000);
+                OAMTable.matrixParameters = (data >> 7) & 0x7C;
+                OAMTable.horizontalFlip = data & 0x1000;
+                OAMTable.verticalFlip = data & 0x2000;
                 OAMTable.size = data >> 14;
                 break;
                 //Attrib 2:
@@ -477,7 +545,7 @@ if (__LITTLE_ENDIAN__) {
                 break;
                 //Scaling/Rotation Parameter:
             default:
-                this.OBJMatrixParameters[address >> 4][(address >> 2) & 0x3] = (data << 16) >> 16;
+                this.OBJMatrixParameters[address >> 2] = (data << 16) >> 16;
         }
         this.OAMRAM16[address | 0] = data | 0;
     }
@@ -488,17 +556,17 @@ if (__LITTLE_ENDIAN__) {
         if ((address & 0x1) == 0) {
             //Attrib 0:
             OAMTable.ycoord = data & 0xFF;
-            OAMTable.matrix2D = ((data & 0x100) == 0x100);
-            OAMTable.doubleSizeOrDisabled = ((data & 0x200) == 0x200);
+            OAMTable.matrix2D = data & 0x100;
+            OAMTable.doubleSizeOrDisabled = (data & 0x200) >> 9;
             OAMTable.mode = (data >> 10) & 0x3;
-            OAMTable.mosaic = ((data & 0x1000) == 0x1000);
-            OAMTable.monolithicPalette = ((data & 0x2000) == 0x2000);
+            OAMTable.mosaic = data & 0x1000;
+            OAMTable.monolithicPalette = data & 0x2000;
             OAMTable.shape = (data >> 14) & 0x3;
             //Attrib 1:
             OAMTable.xcoord = (data >> 16) & 0x1FF;
-            OAMTable.matrixParameters = (data >> 25) & 0x1F;
-            OAMTable.horizontalFlip = ((data & 0x10000000) == 0x10000000);
-            OAMTable.verticalFlip = ((data & 0x20000000) == 0x20000000);
+            OAMTable.matrixParameters = (data >> 23) & 0x7C;
+            OAMTable.horizontalFlip = data & 0x10000000;
+            OAMTable.verticalFlip = data & 0x20000000;
             OAMTable.size = (data >> 30) & 0x3;
         }
         else {
@@ -507,7 +575,7 @@ if (__LITTLE_ENDIAN__) {
             OAMTable.priority = (data >> 10) & 0x3;
             OAMTable.paletteNumber = (data >> 8) & 0xF0;
             //Scaling/Rotation Parameter:
-            this.OBJMatrixParameters[address >> 3][(address >> 1) & 0x3] = data >> 16;
+            this.OBJMatrixParameters[address >> 1] = data >> 16;
         }
         this.OAMRAM32[address | 0] = data | 0;
     }
@@ -529,19 +597,19 @@ else {
                 //Attrib 0:
             case 0:
                 OAMTable.ycoord = data & 0xFF;
-                OAMTable.matrix2D = ((data & 0x100) == 0x100);
-                OAMTable.doubleSizeOrDisabled = ((data & 0x200) == 0x200);
+                OAMTable.matrix2D = data & 0x100;
+                OAMTable.doubleSizeOrDisabled = (data & 0x200) >> 9;
                 OAMTable.mode = (data >> 10) & 0x3;
-                OAMTable.mosaic = ((data & 0x1000) == 0x1000);
-                OAMTable.monolithicPalette = ((data & 0x2000) == 0x2000);
+                OAMTable.mosaic = data & 0x1000;
+                OAMTable.monolithicPalette = data & 0x2000;
                 OAMTable.shape = data >> 14;
                 break;
                 //Attrib 1:
             case 1:
                 OAMTable.xcoord = data & 0x1FF;
-                OAMTable.matrixParameters = (data >> 9) & 0x1F;
-                OAMTable.horizontalFlip = ((data & 0x1000) == 0x1000);
-                OAMTable.verticalFlip = ((data & 0x2000) == 0x2000);
+                OAMTable.matrixParameters = (data >> 7) & 0x7C;
+                OAMTable.horizontalFlip = data & 0x1000;
+                OAMTable.verticalFlip = data & 0x2000;
                 OAMTable.size = data >> 14;
                 break;
                 //Attrib 2:
@@ -552,7 +620,7 @@ else {
                 break;
                 //Scaling/Rotation Parameter:
             default:
-                this.OBJMatrixParameters[address >> 4][(address >> 2) & 0x3] = (data << 16) >> 16;
+                this.OBJMatrixParameters[address >> 2] = (data << 16) >> 16;
         }
         address = address << 1;
         this.OAMRAM[address | 0] = data & 0xFF;
@@ -565,17 +633,17 @@ else {
         if ((address & 0x1) == 0) {
             //Attrib 0:
             OAMTable.ycoord = data & 0xFF;
-            OAMTable.matrix2D = ((data & 0x100) == 0x100);
-            OAMTable.doubleSizeOrDisabled = ((data & 0x200) == 0x200);
+            OAMTable.matrix2D = data & 0x100;
+            OAMTable.doubleSizeOrDisabled = (data & 0x200) >> 9;
             OAMTable.mode = (data >> 10) & 0x3;
-            OAMTable.mosaic = ((data & 0x1000) == 0x1000);
-            OAMTable.monolithicPalette = ((data & 0x2000) == 0x2000);
+            OAMTable.mosaic = data & 0x1000;
+            OAMTable.monolithicPalette = data & 0x2000;
             OAMTable.shape = (data >> 14) & 0x3;
             //Attrib 1:
             OAMTable.xcoord = (data >> 16) & 0x1FF;
-            OAMTable.matrixParameters = (data >> 25) & 0x1F;
-            OAMTable.horizontalFlip = ((data & 0x10000000) == 0x10000000);
-            OAMTable.verticalFlip = ((data & 0x20000000) == 0x20000000);
+            OAMTable.matrixParameters = (data >> 23) & 0x7C;
+            OAMTable.horizontalFlip = data & 0x10000000;
+            OAMTable.verticalFlip = data & 0x20000000;
             OAMTable.size = (data >> 30) & 0x3;
         }
         else {
@@ -584,7 +652,7 @@ else {
             OAMTable.priority = (data >> 10) & 0x3;
             OAMTable.paletteNumber = (data >> 8) & 0xF0;
             //Scaling/Rotation Parameter:
-            this.OBJMatrixParameters[address >> 3][(address >> 1) & 0x3] = data >> 16;
+            this.OBJMatrixParameters[address >> 1] = data >> 16;
         }
         address = address << 2;
         this.OAMRAM[address | 0] = data & 0xFF;

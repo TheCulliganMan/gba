@@ -64,7 +64,7 @@ GameBoyAdvanceChannel3Synth.prototype.disabled = function () {
     this.Enabled = false;
     this.counter = 0;
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceChannel3Synth.prototype.updateCache = function () {
         if ((this.patternType | 0) != 3) {

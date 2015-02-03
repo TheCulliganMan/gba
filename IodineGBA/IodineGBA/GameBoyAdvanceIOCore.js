@@ -69,13 +69,13 @@ GameBoyAdvanceIO.prototype.run = function () {
     //Clock through the state machine:
     while (true) {
         //Dispatch to optimized run loops:
-        switch (this.systemStatus & 0x42) {
+        switch (this.systemStatus & 0x84) {
             case 0:
                 //ARM instruction set:
                 this.runARM();
                 break;
-            case 0x2:
-                //THUMB instruction sey:
+            case 0x4:
+                //THUMB instruction set:
                 this.runTHUMB();
                 break;
             default:
@@ -93,8 +93,10 @@ GameBoyAdvanceIO.prototype.runARM = function () {
             case 0: //CPU Handle State (Normal ARM)
                 this.ARM.executeIteration();
                 break;
-            case 1: //CPU Handle State (Bubble ARM)
-                this.cpu.executeBubbleARM();
+            case 1:
+            case 2: //CPU Handle State (Bubble ARM)
+                this.ARM.executeBubble();
+                this.tickBubble();
                 break;
             default: //Handle lesser called / End of stepping
                 /*
@@ -102,32 +104,27 @@ GameBoyAdvanceIO.prototype.runARM = function () {
                  * JITs shit themselves on better optimizations on larger switches.
                  * Also, JIT compilation time is smaller on smaller switches.
                  */
-                switch (this.systemStatus | 0) {
-                    case 5: //CPU Handle State (Bubble ARM)
-                        this.cpu.executeBubbleARM();
+                switch (this.systemStatus >> 2) {
+                    case 0x2:
+                        //IRQ Handle State:
+                        this.handleIRQARM();
                         break;
-                    case 4: //CPU Handle State (IRQ)
-                        this.cpu.IRQinARM();
-                        break;
-                    case 0x8: //DMA Handle State
-                    case 0x9:
+                    case 0x4:
+                    case 0x6:
+                        //DMA Handle State
                     case 0xC:
-                    case 0xD:
-                    case 0x18: //DMA Inside Halt State
-                    case 0x19:
-                    case 0x1C:
-                    case 0x1D:
+                    case 0xE:
+                        //DMA Inside Halt State
                         this.handleDMA();
                         break;
-                    case 0x10: //Handle Halt State
-                    case 0x11:
-                    case 0x14:
-                    case 0x15:
+                    case 0x8:
+                    case 0xA:
+                        //Handle Halt State
                         this.handleHalt();
                         break;
                     default: //Handle Stop State
                         //End of Stepping and/or CPU run loop switch:
-                        if ((this.systemStatus & 0x42) != 0) {
+                        if ((this.systemStatus & 0x84) != 0) {
                             return;
                         }
                         this.handleStop();
@@ -140,11 +137,13 @@ GameBoyAdvanceIO.prototype.runTHUMB = function () {
     while (true) {
         //Handle the current system state selected:
         switch (this.systemStatus | 0) {
-            case 2: //CPU Handle State (Normal THUMB)
+            case 4: //CPU Handle State (Normal THUMB)
                 this.THUMB.executeIteration();
                 break;
-            case 3: //CPU Handle State (Bubble THUMB)
-                this.cpu.executeBubbleTHUMB();
+            case 5:
+            case 6: //CPU Handle State (Bubble THUMB)
+                this.THUMB.executeBubble();
+                this.tickBubble();
                 break;
             default: //Handle lesser called / End of stepping
                 /*
@@ -152,32 +151,27 @@ GameBoyAdvanceIO.prototype.runTHUMB = function () {
                  * JITs shit themselves on better optimizations on larger switches.
                  * Also, JIT compilation time is smaller on smaller switches.
                  */
-                switch (this.systemStatus | 0) {
-                    case 7: //CPU Handle State (Bubble THUMB)
-                        this.cpu.executeBubbleTHUMB();
+                switch (this.systemStatus >> 2) {
+                    case 0x3:
+                        //IRQ Handle State:
+                        this.handleIRQThumb();
                         break;
-                    case 6: //CPU Handle State (IRQ)
-                        this.cpu.IRQinTHUMB();
-                        break;
-                    case 0xA: //DMA Handle State
-                    case 0xB:
-                    case 0xE:
+                    case 0x5:
+                    case 0x7:
+                        //DMA Handle State
+                    case 0xD:
                     case 0xF:
-                    case 0x1A: //DMA Inside Halt State
-                    case 0x1B:
-                    case 0x1E:
-                    case 0x1F:
+                        //DMA Inside Halt State
                         this.handleDMA();
                         break;
-                    case 0x12: //Handle Halt State
-                    case 0x13:
-                    case 0x16:
-                    case 0x17:
+                    case 0x9:
+                    case 0x11:
+                        //Handle Halt State
                         this.handleHalt();
                         break;
                     default: //Handle Stop State
                         //End of Stepping and/or CPU run loop switch:
-                        if ((this.systemStatus & 0x42) != 0x2) {
+                        if ((this.systemStatus & 0x84) != 0x4) {
                             return;
                         }
                         this.handleStop();
@@ -258,6 +252,28 @@ GameBoyAdvanceIO.prototype.getRemainingCycles = function () {
     }
     return this.cyclesToIterate | 0;
 }
+GameBoyAdvanceIO.prototype.handleIRQARM = function () {
+    if ((this.systemStatus | 0) > 0x8) {
+        //CPU Handle State (Bubble ARM)
+        this.ARM.executeBubble();
+        this.tickBubble();
+    }
+    else {
+        //CPU Handle State (IRQ)
+        this.cpu.IRQinARM();
+    }
+}
+GameBoyAdvanceIO.prototype.handleIRQThumb = function () {
+    if ((this.systemStatus | 0) > 0xC) {
+        //CPU Handle State (Bubble THUMB)
+        this.THUMB.executeBubble();
+        this.tickBubble();
+    }
+    else {
+        //CPU Handle State (IRQ)
+        this.cpu.IRQinTHUMB();
+    }
+}
 GameBoyAdvanceIO.prototype.handleDMA = function () {
     /*
      Loop our state status in here as
@@ -268,7 +284,7 @@ GameBoyAdvanceIO.prototype.handleDMA = function () {
     do {
         //Perform a DMA read and write:
         this.dma.perform();
-    } while ((this.systemStatus & 0x48) == 8);
+    } while ((this.systemStatus & 0x90) == 0x10);
 }
 GameBoyAdvanceIO.prototype.handleHalt = function () {
     if (!this.irq.IRQMatch()) {
@@ -318,72 +334,72 @@ GameBoyAdvanceIO.prototype.solveClosestTime = function (clocks1, clocks2) {
 }
 GameBoyAdvanceIO.prototype.flagBubble = function () {
     //Flag a CPU pipeline bubble to step through:
-    this.systemStatus = this.systemStatus | 0x1;
+    this.systemStatus = this.systemStatus | 0x2;
 }
-GameBoyAdvanceIO.prototype.deflagBubble = function () {
-    //Deflag a CPU pipeline bubble to step through:
-    this.systemStatus = this.systemStatus & 0x7E;
+GameBoyAdvanceIO.prototype.tickBubble = function () {
+    //Tick down a CPU pipeline bubble to step through:
+    this.systemStatus = ((this.systemStatus | 0) - 1) | 0;
 }
 GameBoyAdvanceIO.prototype.flagTHUMB = function () {
     //Flag a CPU IRQ to step through:
-    this.systemStatus = this.systemStatus | 0x2;
+    this.systemStatus = this.systemStatus | 0x4;
 }
 GameBoyAdvanceIO.prototype.deflagTHUMB = function () {
     //Deflag a CPU IRQ to step through:
-    this.systemStatus = this.systemStatus & 0x7D;
+    this.systemStatus = this.systemStatus & 0xFB;
 }
 GameBoyAdvanceIO.prototype.flagIRQ = function () {
     //Flag THUMB CPU mode to step through:
-    this.systemStatus = this.systemStatus | 0x4;
+    this.systemStatus = this.systemStatus | 0x8;
 }
 GameBoyAdvanceIO.prototype.deflagIRQ = function () {
     //Deflag THUMB CPU mode to step through:
-    this.systemStatus = this.systemStatus & 0x7B;
+    this.systemStatus = this.systemStatus & 0xF7;
 }
 GameBoyAdvanceIO.prototype.flagDMA = function () {
     //Flag a DMA event to step through:
-    this.systemStatus = this.systemStatus | 0x8;
+    this.systemStatus = this.systemStatus | 0x10;
 }
 GameBoyAdvanceIO.prototype.deflagDMA = function () {
     //Deflag a DMA event to step through:
-    this.systemStatus = this.systemStatus & 0x77;
+    this.systemStatus = this.systemStatus & 0xEF;
 }
 GameBoyAdvanceIO.prototype.flagHalt = function () {
     //Flag a halt event to step through:
-    this.systemStatus = this.systemStatus | 0x10;
+    this.systemStatus = this.systemStatus | 0x20;
 }
 GameBoyAdvanceIO.prototype.deflagHalt = function () {
     //Deflag a halt event to step through:
-    this.systemStatus = this.systemStatus & 0x6F;
+    this.systemStatus = this.systemStatus & 0xDF;
 }
 GameBoyAdvanceIO.prototype.flagStop = function () {
     //Flag a halt event to step through:
-    this.systemStatus = this.systemStatus | 0x20;
+    this.systemStatus = this.systemStatus | 0x40;
 }
 GameBoyAdvanceIO.prototype.deflagStop = function () {
     //Deflag a halt event to step through:
-    this.systemStatus = this.systemStatus & 0x5F;
+    this.systemStatus = this.systemStatus & 0xBF;
 }
 GameBoyAdvanceIO.prototype.flagIterationEnd = function () {
     //Flag a run loop kill event to step through:
-    this.systemStatus = this.systemStatus | 0x40;
+    this.systemStatus = this.systemStatus | 0x80;
 }
 GameBoyAdvanceIO.prototype.deflagIterationEnd = function () {
     //Deflag a run loop kill event to step through:
-    this.systemStatus = this.systemStatus & 0x3F;
+    this.systemStatus = this.systemStatus & 0x7F;
 }
 GameBoyAdvanceIO.prototype.isStopped = function () {
     //Sound system uses this to emulate a unpowered audio output:
-    return ((this.systemStatus & 0x20) == 0x20);
+    return ((this.systemStatus & 0x40) == 0x40);
 }
 GameBoyAdvanceIO.prototype.inDMA = function () {
     //Save system uses this to detect dma:
-    return ((this.systemStatus & 0x8) == 0x8);
+    return ((this.systemStatus & 0x10) == 0x10);
 }
 GameBoyAdvanceIO.prototype.getCurrentFetchValue = function () {
     //Last valid value output for bad reads:
     var fetch = 0;
-    if ((this.systemStatus & 0x8) == 0) {
+    if ((this.systemStatus & 0x10) == 0) {
         fetch = this.cpu.getCurrentFetchValue() | 0;
     }
     else {

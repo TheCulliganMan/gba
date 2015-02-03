@@ -2,7 +2,7 @@
 /*
  * This file is part of IodineGBA
  *
- * Copyright (C) 2012-2013 Grant Galitz
+ * Copyright (C) 2012-2014 Grant Galitz
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,6 @@
  *
  */
 function GameBoyAdvanceMosaicRenderer(gfx) {
-    this.transparency = gfx.transparency | 0;
     this.BGMosaicHSize = 0;
     this.BGMosaicVSize = 0;
     this.OBJMosaicHSize = 0;
@@ -39,7 +38,7 @@ GameBoyAdvanceMosaicRenderer.prototype.renderMosaicHorizontal = function (layer)
 GameBoyAdvanceMosaicRenderer.prototype.renderOBJMosaicHorizontal = function (layer, xOffset, xSize) {
     xOffset = xOffset | 0;
     xSize = xSize | 0;
-    var currentPixel = this.transparency | 0;
+    var currentPixel = 0x3800000;
     var mosaicBlur = ((this.OBJMosaicHSize | 0) + 1) | 0;
     if ((mosaicBlur | 0) > 1) {    //Don't perform a useless loop.
         for (var position = ((xOffset | 0) % (mosaicBlur | 0)) | 0; (position | 0) < (xSize | 0); position = ((position | 0) + 1) | 0) {

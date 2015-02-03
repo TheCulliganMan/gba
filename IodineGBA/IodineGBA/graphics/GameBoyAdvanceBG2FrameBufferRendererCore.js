@@ -17,7 +17,6 @@
  */
 function GameBoyAdvanceBG2FrameBufferRenderer(gfx) {
     this.gfx = gfx;
-    this.transparency = this.gfx.transparency;
     this.palette = this.gfx.palette256;
     this.VRAM = this.gfx.VRAM;
     this.VRAM16 = this.gfx.VRAM16;
@@ -43,7 +42,7 @@ GameBoyAdvanceBG2FrameBufferRenderer.prototype.renderScanLine = function (line) 
     return this.bgAffineRenderer.renderScanLine(line | 0, this);
 }
 if (__LITTLE_ENDIAN__) {
-    if (!!Math.imul) {
+    if (typeof Math.imul == "function") {
         //Math.imul found, insert the optimized path in:
         GameBoyAdvanceBG2FrameBufferRenderer.prototype.fetchMode3Pixel = function (x, y) {
             x = x | 0;
@@ -54,7 +53,7 @@ if (__LITTLE_ENDIAN__) {
                 return this.VRAM16[address & 0xFFFF] & 0x7FFF;
             }
             //Out of range, output transparency:
-            return this.transparency | 0;
+            return 0x3800000;
         }
         GameBoyAdvanceBG2FrameBufferRenderer.prototype.fetchMode5Pixel = function (x, y) {
             x = x | 0;
@@ -65,7 +64,7 @@ if (__LITTLE_ENDIAN__) {
                 return this.VRAM16[address & 0xFFFF] & 0x7FFF;
             }
             //Out of range, output transparency:
-            return this.transparency | 0;
+            return 0x3800000;
         }
     }
     else {
@@ -79,7 +78,7 @@ if (__LITTLE_ENDIAN__) {
                 return this.VRAM16[address & 0xFFFF] & 0x7FFF;
             }
             //Out of range, output transparency:
-            return this.transparency | 0;
+            return 0x3800000;
         }
         GameBoyAdvanceBG2FrameBufferRenderer.prototype.fetchMode5Pixel = function (x, y) {
             x = x | 0;
@@ -90,12 +89,12 @@ if (__LITTLE_ENDIAN__) {
                 return this.VRAM16[address & 0xFFFF] & 0x7FFF;
             }
             //Out of range, output transparency:
-            return this.transparency | 0;
+            return 0x3800000;
         }
     }
 }
 else {
-    if (!!Math.imul) {
+    if (typeof Math.imul == "function") {
         //Math.imul found, insert the optimized path in:
         GameBoyAdvanceBG2FrameBufferRenderer.prototype.fetchMode3Pixel = function (x, y) {
             x = x | 0;
@@ -106,7 +105,7 @@ else {
                 return ((this.VRAM[address | 1] << 8) | this.VRAM[address | 0]) & 0x7FFF;
             }
             //Out of range, output transparency:
-            return this.transparency | 0;
+            return 0x3800000;
         }
         GameBoyAdvanceBG2FrameBufferRenderer.prototype.fetchMode5Pixel = function (x, y) {
             x = x | 0;
@@ -117,7 +116,7 @@ else {
                 return ((this.VRAM[address | 1] << 8) | this.VRAM[address | 0]) & 0x7FFF;
             }
             //Out of range, output transparency:
-            return this.transparency | 0;
+            return 0x3800000;
         }
     }
     else {
@@ -129,7 +128,7 @@ else {
                 return ((this.VRAM[address | 1] << 8) | this.VRAM[address]) & 0x7FFF;
             }
             //Out of range, output transparency:
-            return this.transparency;
+            return 0x3800000;
         }
         GameBoyAdvanceBG2FrameBufferRenderer.prototype.fetchMode5Pixel = function (x, y) {
             //Output pixel:
@@ -138,11 +137,11 @@ else {
                 return ((this.VRAM[address | 1] << 8) | this.VRAM[address]) & 0x7FFF;
             }
             //Out of range, output transparency:
-            return this.transparency;
+            return 0x3800000;
         }
     }
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceBG2FrameBufferRenderer.prototype.fetchMode4Pixel = function (x, y) {
         x = x | 0;
@@ -153,7 +152,7 @@ if (!!Math.imul) {
             return this.palette[this.VRAM[address | 0] & 0xFF] | 0;
         }
         //Out of range, output transparency:
-        return this.transparency | 0;
+        return 0x3800000;
     }
 }
 else {
@@ -164,10 +163,10 @@ else {
             return this.palette[this.VRAM[this.frameSelect + (y * 240) + x]];
         }
         //Out of range, output transparency:
-        return this.transparency | 0;
+        return 0x3800000;
     }
 }
 GameBoyAdvanceBG2FrameBufferRenderer.prototype.writeFrameSelect = function (frameSelect) {
-    frameSelect = frameSelect | 0;
-    this.frameSelect = (frameSelect * 0xA000) | 0;
+    frameSelect = frameSelect >> 31;
+    this.frameSelect = frameSelect & 0xA000;
 }

@@ -20,7 +20,6 @@ function GameBoyAdvanceBGMatrixRenderer(gfx, BGLayer) {
     this.BGLayer = BGLayer | 0;
     this.VRAM = this.gfx.VRAM;
     this.palette = this.gfx.palette256;
-    this.transparency = this.gfx.transparency | 0;
     this.bgAffineRenderer = this.gfx.bgAffineRenderer[BGLayer & 0x1];
     this.screenSizePreprocess();
     this.screenBaseBlockPreprocess();
@@ -31,7 +30,7 @@ GameBoyAdvanceBGMatrixRenderer.prototype.renderScanLine = function (line) {
     line = line | 0;
     return this.bgAffineRenderer.renderScanLine(line | 0, this);
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceBGMatrixRenderer.prototype.fetchTile = function (x, y) {
         //Compute address for tile VRAM to address:
@@ -75,7 +74,7 @@ GameBoyAdvanceBGMatrixRenderer.prototype.fetchPixelNoOverflow = function (x, y) 
     if ((x | 0) != (x & this.mapSizeComparer) || (y | 0) != (y & this.mapSizeComparer)) {
         //Overflow Handling:
         //Out of bounds with no overflow allowed:
-        return this.transparency | 0;
+        return 0x3800000;
     }
     var address = this.computeScreenAddress(x | 0, y | 0) | 0;
     return this.palette[this.VRAM[address & 0xFFFF] & 0xFF] | 0;

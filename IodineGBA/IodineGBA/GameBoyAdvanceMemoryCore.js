@@ -820,7 +820,7 @@ GameBoyAdvanceMemory.prototype.writeOAM32 = function (address, data) {
     this.wait.OAMAccess();
     this.gfx.writeOAM32(address & 0x3FC, data | 0);
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceMemory.prototype.writePalette8 = function (address, data) {
         address = address | 0;
@@ -1762,7 +1762,7 @@ GameBoyAdvanceMemory.prototype.readSRAM8 = function (address) {
     this.wait.SRAMAccess();
     return this.saves.readSRAM(address & 0xFFFF) | 0;
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceMemory.prototype.readSRAM16 = function (address) {
         address = address | 0;

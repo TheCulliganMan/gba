@@ -125,8 +125,10 @@ GameBoyAdvanceDMA.prototype.gfxVBlankRequest = function () {
 GameBoyAdvanceDMA.prototype.gfxDisplaySyncRequest = function () {
     this.channels[3].requestDMA(this.DMA_REQUEST_TYPE.DISPLAY_SYNC | 0);
 }
-GameBoyAdvanceDMA.prototype.gfxDisplaySyncKillRequest = function () {
+GameBoyAdvanceDMA.prototype.gfxDisplaySyncEnableCheck = function () {
+	//Reset the display sync & reassert DMA enable line:
     this.channels[3].enabled &= ~this.DMA_REQUEST_TYPE.DISPLAY_SYNC;
+	this.channels[3].requestDisplaySync();
     this.update();
 }
 GameBoyAdvanceDMA.prototype.requestDMA = function (DMAType) {

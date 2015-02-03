@@ -49,7 +49,6 @@ GameBoyAdvanceGraphics.prototype.initializeIO = function () {
     this.BGDisplayOverflow = [false, false];
     this.BGScreenSize = getUint8Array(0x4);
     this.WINOutside = 0;
-    this.WINOBJOutside = 0;
     this.paletteRAM = getUint8Array(0x400);
     this.VRAM = getUint8Array(0x18000);
     this.VRAM16 = getUint16View(this.VRAM);
@@ -67,8 +66,7 @@ GameBoyAdvanceGraphics.prototype.initializeIO = function () {
         this.currentScanLine = 0x7C;
         this.lastUnrenderedLine = 0x7C;
     }
-    this.transparency = 0x3800000;
-    this.backdrop = this.transparency | 0x200000;
+    this.backdrop = 0x3A00000;
 }
 GameBoyAdvanceGraphics.prototype.initializeRenderer = function () {
     this.initializePaletteStorage();
@@ -100,14 +98,14 @@ GameBoyAdvanceGraphics.prototype.initializeRenderer = function () {
 GameBoyAdvanceGraphics.prototype.initializePaletteStorage = function () {
     //Both BG and OAM in unified storage:
     this.palette256 = getInt32Array(0x100);
-    this.palette256[0] = this.transparency;
+    this.palette256[0] = 0x3800000;
     this.paletteOBJ256 = getInt32Array(0x100);
-    this.paletteOBJ256[0] = this.transparency;
+    this.paletteOBJ256[0] = 0x3800000;
     this.palette16 = getInt32Array(0x100);
     this.paletteOBJ16 = getInt32Array(0x100);
     for (var index = 0; index < 0x10; ++index) {
-        this.palette16[index << 4] = this.transparency;
-        this.paletteOBJ16[index << 4] = this.transparency;
+        this.palette16[index << 4] = 0x3800000;
+        this.paletteOBJ16[index << 4] = 0x3800000;
     }
 }
 GameBoyAdvanceGraphics.prototype.addClocks = function (clocks) {
@@ -155,10 +153,10 @@ GameBoyAdvanceGraphics.prototype.clockLCDNextLine = function () {
             case 160:
                 this.updateVBlankStart();                           //Update state for start of vblank.
             case 161:
-                this.checkDisplaySync();                            //Check for display sync.
+                this.IOCore.dma.gfxDisplaySyncRequest();            //Display Sync. DMA trigger.
                 break;
             case 162:
-                this.IOCore.dma.gfxDisplaySyncKillRequest();        //Display Sync. DMA reset on start of line 162.
+                this.IOCore.dma.gfxDisplaySyncEnableCheck();        //Display Sync. DMA reset on start of line 162.
                 break;
             case 227:
                 this.inVBlank = false;                              //Un-mark VBlank on start of last vblank line.
@@ -167,8 +165,8 @@ GameBoyAdvanceGraphics.prototype.clockLCDNextLine = function () {
                 this.currentScanLine = 0;                           //Reset scan-line to zero (First line of draw).
         }
     }
-    else {
-        this.checkDisplaySync();                                    //Check for display sync.
+    else if ((this.currentScanLine | 0) > 1) {
+        this.IOCore.dma.gfxDisplaySyncRequest();                    //Display Sync. DMA trigger.
     }
     this.checkVCounter();                                           //We're on a new scan line, so check the VCounter for match.
     this.isRenderingCheckPreprocess();                              //Update a check value.
@@ -187,11 +185,6 @@ GameBoyAdvanceGraphics.prototype.updateHBlank = function () {
         this.isRenderingCheckPreprocess();                          //Update a check value.
     }
 }
-GameBoyAdvanceGraphics.prototype.checkDisplaySync = function () {
-    if ((this.currentScanLine | 0) > 1) {
-        this.IOCore.dma.gfxDisplaySyncRequest();                    //Display Sync. DMA trigger.
-    }
-}
 GameBoyAdvanceGraphics.prototype.checkVCounter = function () {
     if ((this.currentScanLine | 0) == (this.VCounter | 0)) {        //Check for VCounter match.
         this.VCounterMatch = true;
@@ -203,9 +196,6 @@ GameBoyAdvanceGraphics.prototype.checkVCounter = function () {
         this.VCounterMatch = false;
     }
 }
-GameBoyAdvanceGraphics.prototype.nextVBlankEventTime = function () {
-    return (((((387 - (this.currentScanLine | 0)) % 228) * 1232) | 0) + 1232 - (this.LCDTicks | 0)) | 0;
-}
 GameBoyAdvanceGraphics.prototype.nextVBlankIRQEventTime = function () {
     var nextEventTime = -1;
     if (this.IRQVBlank) {
@@ -215,33 +205,17 @@ GameBoyAdvanceGraphics.prototype.nextVBlankIRQEventTime = function () {
     return nextEventTime | 0;
 }
 GameBoyAdvanceGraphics.prototype.nextHBlankEventTime = function () {
-    return ((2238 - (this.LCDTicks | 0)) % 1232) | 0;
+    var time = (1006 - (this.LCDTicks | 0)) | 0;
+    if ((time | 0) <= 0) {
+        time = ((time | 0) + 1232) | 0;
+    }
+    return time | 0;
 }
 GameBoyAdvanceGraphics.prototype.nextHBlankIRQEventTime = function () {
     var nextEventTime = -1;
     if (this.IRQHBlank) {
         //Only give a time if we're allowed to irq:
         nextEventTime = this.nextHBlankEventTime() | 0;
-    }
-    return nextEventTime | 0;
-}
-GameBoyAdvanceGraphics.prototype.nextHBlankDMAEventTime = function () {
-    var nextEventTime = -1
-    if ((this.currentScanLine | 0) < 159 || (!this.inHBlank && (this.currentScanLine | 0) == 159)) {
-       //Go to next HBlank time inside screen draw:
-        nextEventTime = this.nextHBlankEventTime() | 0;
-    }
-    else {
-        //No HBlank DMA in VBlank:
-        nextEventTime = ((((228 - (this.currentScanLine | 0)) * 1232) | 0) + 1006 - (this.LCDTicks | 0)) | 0;
-    }
-    return nextEventTime | 0;
-}
-GameBoyAdvanceGraphics.prototype.nextVCounterEventTime = function () {
-    var nextEventTime = -1;
-    if ((this.VCounter | 0) <= 227) {
-        //Only match lines within screen or vblank:
-        nextEventTime = (((((((227 + (this.VCounter | 0) - (this.currentScanLine | 0)) | 0) % 228) | 0) * 1232) | 0) + 1232 - (this.LCDTicks | 0)) | 0;
     }
     return nextEventTime | 0;
 }
@@ -253,21 +227,102 @@ GameBoyAdvanceGraphics.prototype.nextVCounterIRQEventTime = function () {
     }
     return nextEventTime | 0;
 }
-GameBoyAdvanceGraphics.prototype.nextDisplaySyncEventTime = function () {
-    var nextEventTime = -1;
-    if ((this.currentScanLine | 0) == 0) {
-        //Doesn't start until line 2:
-        nextEventTime = ((((2 - (this.currentScanLine | 0)) * 1232) | 0) - (this.LCDTicks | 0)) | 0;
+if (typeof Math.imul == "function") {
+    //Math.imul found, insert the optimized path in:
+    GameBoyAdvanceGraphics.prototype.nextVBlankEventTime = function () {
+        var nextEventTime = (160 - (this.currentScanLine | 0)) | 0;
+        if ((nextEventTime | 0) <= 0) {
+            nextEventTime = ((nextEventTime | 0) + 160) | 0;
+        }
+        nextEventTime = Math.imul(nextEventTime | 0, 1232) | 0;
+        nextEventTime = ((nextEventTime | 0) - (this.LCDTicks | 0)) | 0;
+        return nextEventTime | 0;
     }
-    else if ((this.currentScanLine | 0) < 161) {
-        //Line 2 through line 161:
-        nextEventTime = (1232 - (this.LCDTicks | 0)) | 0;
+    GameBoyAdvanceGraphics.prototype.nextHBlankDMAEventTime = function () {
+        var nextEventTime = -1
+        if ((this.currentScanLine | 0) < 159 || (!this.inHBlank && (this.currentScanLine | 0) == 159)) {
+            //Go to next HBlank time inside screen draw:
+            nextEventTime = this.nextHBlankEventTime() | 0;
+        }
+        else {
+            //No HBlank DMA in VBlank:
+            nextEventTime = (228 - (this.currentScanLine | 0)) | 0
+            nextEventTime = Math.imul(nextEventTime | 0, 1232) | 0;
+            nextEventTime = ((nextEventTime | 0) + 1006) | 0;
+            nextEventTime = ((nextEventTime | 0) - (this.LCDTicks | 0)) | 0;
+        }
+        return nextEventTime | 0;
     }
-    else {
-        //Skip to line 2 metrics:
-        nextEventTime = ((((230 - (this.currentScanLine | 0)) * 1232) | 0) - (this.LCDTicks | 0)) | 0;
+    GameBoyAdvanceGraphics.prototype.nextVCounterEventTime = function () {
+        var nextEventTime = -1;
+        if ((this.VCounter | 0) <= 227) {
+            //Only match lines within screen or vblank:
+            nextEventTime = ((this.VCounter | 0) - (this.currentScanLine | 0)) | 0;
+            if ((nextEventTime | 0) <= 0) {
+                nextEventTime = ((nextEventTime | 0) + 228) | 0;
+            }
+            nextEventTime = Math.imul(nextEventTime | 0, 1232) | 0;
+            nextEventTime = ((nextEventTime | 0) - (this.LCDTicks | 0)) | 0;
+        }
+        return nextEventTime | 0;
     }
-    return nextEventTime | 0;
+    GameBoyAdvanceGraphics.prototype.nextDisplaySyncEventTime = function () {
+        var nextEventTime = 0;
+        if ((this.currentScanLine | 0) == 0) {
+            //Doesn't start until line 2:
+            nextEventTime = (2464 - (this.LCDTicks | 0)) | 0;
+        }
+        else if ((this.currentScanLine | 0) < 161) {
+            //Line 2 through line 161:
+            nextEventTime = (1232 - (this.LCDTicks | 0)) | 0;
+        }
+        else {
+            //Skip to line 2 metrics:
+            nextEventTime = (230 - (this.currentScanLine | 0)) | 0;
+            nextEventTime = Math.imul(nextEventTime | 0, 1232) | 0;
+            nextEventTime = ((nextEventTime | 0) - (this.LCDTicks | 0)) | 0;
+        }
+        return nextEventTime | 0;
+    }
+}
+else {
+    //Math.imul not found, use the compatibility method:
+    GameBoyAdvanceGraphics.prototype.nextVBlankEventTime = function () {
+        return (((387 - this.currentScanLine) % 228) * 1232) + 1232 - this.LCDTicks;
+    }
+    GameBoyAdvanceGraphics.prototype.nextHBlankDMAEventTime = function () {
+        if (this.currentScanLine < 159 || (!this.inHBlank && this.currentScanLine == 159)) {
+            //Go to next HBlank time inside screen draw:
+            return this.nextHBlankEventTime();
+        }
+        else {
+            //No HBlank DMA in VBlank:
+            return ((228 - this.currentScanLine) * 1232) + 1006 - this.LCDTicks;
+        }
+    }
+    GameBoyAdvanceGraphics.prototype.nextVCounterEventTime = function () {
+        if (this.VCounter <= 227) {
+            //Only match lines within screen or vblank:
+            return (((227 + this.VCounter - this.currentScanLine) % 228) * 1232) + 1232 - this.LCDTicks;
+        }
+        else {
+            return -1;
+        }
+    }
+    GameBoyAdvanceGraphics.prototype.nextDisplaySyncEventTime = function () {
+        if (this.currentScanLine == 0) {
+            //Doesn't start until line 2:
+            return 2464 - this.LCDTicks;
+        }
+        else if (this.currentScanLine < 161) {
+            //Line 2 through line 161:
+            return 1232 - this.LCDTicks;
+        }
+        else {
+            //Skip to line 2 metrics:
+            return ((230 - this.currentScanLine) * 1232) - this.LCDTicks;
+        }
+    }
 }
 GameBoyAdvanceGraphics.prototype.updateVBlankStart = function () {
     this.inVBlank = true;                                //Mark VBlank.
@@ -407,7 +462,7 @@ GameBoyAdvanceGraphics.prototype.writeDISPCNT0 = function (data) {
     data = data | 0;
     this.graphicsJIT();
     this.BGMode = data & 0x07;
-    this.bg2FrameBufferRenderer.writeFrameSelect((data & 0x10) >> 4);
+    this.bg2FrameBufferRenderer.writeFrameSelect((data & 0x10) << 27);
     this.HBlankIntervalFree = ((data & 0x20) == 0x20);
     this.VRAMOneDimensional = ((data & 0x40) == 0x40);
     this.forcedBlank = ((data & 0x80) == 0x80);
@@ -918,11 +973,10 @@ GameBoyAdvanceGraphics.prototype.readWINOUT0 = function () {
 GameBoyAdvanceGraphics.prototype.writeWINOUT1 = function (data) {
     data = data | 0;
     this.graphicsJIT();
-    this.WINOBJOutside = data & 0x3F;
-    this.objWindowRenderer.preprocess();
+    this.objWindowRenderer.writeWINOUT1(data | 0);
 }
 GameBoyAdvanceGraphics.prototype.readWINOUT1 = function () {
-    return this.WINOBJOutside | 0;
+    return this.objWindowRenderer.readWINOUT1() | 0;
 }
 GameBoyAdvanceGraphics.prototype.writeMOSAIC0 = function (data) {
     data = data | 0;
@@ -975,15 +1029,10 @@ if (__LITTLE_ENDIAN__) {
     GameBoyAdvanceGraphics.prototype.writeVRAM8 = function (address, data) {
         address = address | 0;
         data = data | 0;
-        if ((address & 0x10000) != 0) {
-            if ((address & 0x17FFF) < 0x14000 && (this.BGMode | 0) >= 3) {
-                this.graphicsJIT();
-                this.VRAM16[(address >> 1) & 0xFFFF] = Math.imul(data & 0xFF, 0x101) | 0;
-            }
-        }
-        else {
+        if ((address & 0x10000) == 0 || ((address & 0x17FFF) < 0x14000 && (this.BGMode | 0) >= 3)) {
             this.graphicsJIT();
-            this.VRAM16[(address >> 1) & 0x7FFF] = Math.imul(data & 0xFF, 0x101) | 0;
+            address = address & (((address & 0x10000) >> 1) ^ address);
+            this.VRAM16[(address >> 1) & 0xFFFF] = Math.imul(data & 0xFF, 0x101) | 0;
         }
     }
     GameBoyAdvanceGraphics.prototype.writeVRAM16 = function (address, data) {
@@ -1042,15 +1091,8 @@ if (__LITTLE_ENDIAN__) {
 }
 else {
     GameBoyAdvanceGraphics.prototype.writeVRAM8 = function (address, data) {
-        address &= 0x1FFFE;
-        if (address >= 0x10000) {
-            if ((address & 0x17FFF) < 0x14000 && (this.BGMode | 0) >= 3) {
-                this.graphicsJIT();
-                this.VRAM[address++] = data & 0xFF;
-                this.VRAM[address] = data & 0xFF;
-            }
-        }
-        else {
+        address &= 0x1FFFE & (((address & 0x10000) >> 1) ^ address);
+        if (address < 0x10000 || ((address & 0x17FFF) < 0x14000 && this.BGMode >= 3)) {
             this.graphicsJIT();
             this.VRAM[address++] = data & 0xFF;
             this.VRAM[address] = data & 0xFF;
@@ -1139,7 +1181,7 @@ GameBoyAdvanceGraphics.prototype.writePalette256Color = function (address, palet
     address = address | 0;
     palette = palette | 0;
     if ((address & 0xFF) == 0) {
-        palette = this.transparency | palette;
+        palette = 0x3800000 | palette;
         if (address == 0) {
             this.backdrop = palette | 0x200000;
         }
@@ -1155,7 +1197,7 @@ GameBoyAdvanceGraphics.prototype.writePalette16Color = function (address, palett
     address = address | 0;
     palette = palette | 0;
     if ((address & 0xF) == 0) {
-        palette = this.transparency | palette;
+        palette = 0x3800000 | palette;
     }
     if ((address | 0) < 0x100) {
         //BG Layer Palette:

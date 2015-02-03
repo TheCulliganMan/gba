@@ -2575,7 +2575,7 @@ ARMInstructionSet.prototype.imms = function () {
 }
 ARMInstructionSet.prototype.rc = function () {
     return (
-            ((this.branchFlags.getNegative()) ? 0x80000000 : 0) |
+            (this.branchFlags.getNegativeInt() & 0x80000000) |
             ((this.branchFlags.getZero()) ? 0x40000000 : 0) |
             ((this.branchFlags.getCarry()) ? 0x20000000 : 0) |
             ((this.branchFlags.getOverflow()) ? 0x10000000 : 0) |

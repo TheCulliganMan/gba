@@ -65,7 +65,6 @@ GameBoyAdvanceCPU.prototype.initializeRegisters = function () {
     this.SPSR[3] = 0xD3; //Abort
     this.SPSR[4] = 0xD3; //Undefined
     this.triggeredIRQ = false;        //Pending IRQ found.
-    this.pipelineInvalid = 0x2;        //Mark pipeline as invalid.
     //Pre-initialize stack pointers if no BIOS loaded:
     if (!this.IOCore.BIOSFound || this.IOCore.settings.SKIPBoot) {
         this.HLEReset();
@@ -80,35 +79,12 @@ GameBoyAdvanceCPU.prototype.HLEReset = function () {
     this.registers[15] = 0x8000000;
     this.modeFlags = this.modeFlags | 0x1f;
 }
-GameBoyAdvanceCPU.prototype.executeBubbleARM = function () {
-    //Tick the pipeline and bubble out invalidity:
-    this.pipelineInvalid >>= 1;
-    //Tick the pipeline of the selected instruction set:
-    this.ARM.executeBubble();
-    //If on the second bubble, kick ourselves out of the bubble mode:
-    if ((this.pipelineInvalid | 0) == 0) {
-        //Change state to normal execution:
-        this.IOCore.deflagBubble();
-    }
-}
-GameBoyAdvanceCPU.prototype.executeBubbleTHUMB = function () {
-    //Tick the pipeline and bubble out invalidity:
-    this.pipelineInvalid >>= 1;
-    //Tick the pipeline of the selected instruction set:
-    this.THUMB.executeBubble();
-    //If on the second bubble, kick ourselves out of the bubble mode:
-    if ((this.pipelineInvalid | 0) == 0) {
-        //Change state to normal execution:
-        this.IOCore.deflagBubble();
-    }
-}
 GameBoyAdvanceCPU.prototype.branch = function (branchTo) {
     branchTo = branchTo | 0;
     if ((branchTo | 0) > 0x3FFF || this.IOCore.BIOSFound) {
         //Branch to new address:
         this.registers[15] = branchTo | 0;
         //Mark pipeline as invalid:
-        this.pipelineInvalid = 0x2;
         this.IOCore.flagBubble();
         //Next PC fetch has to update the address bus:
         this.wait.NonSequentialBroadcastClear();
@@ -488,7 +464,7 @@ GameBoyAdvanceCPU.prototype.switchRegisterBank = function (newMode) {
             this.registers[14] = this.registersUND[1] | 0;
     }
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceCPU.prototype.calculateMUL32 = Math.imul;
 }

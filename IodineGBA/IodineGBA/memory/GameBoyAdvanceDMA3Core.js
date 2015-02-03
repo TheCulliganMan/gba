@@ -47,6 +47,7 @@ GameBoyAdvanceDMA3.prototype.initialize = function () {
     this.sourceControl = 0;
     this.destinationControl = 0;
     this.gamePakDMA = false;
+	this.displaySyncEnable = false;
     this.memory = this.DMACore.IOCore.memory;
 }
 GameBoyAdvanceDMA3.prototype.writeDMASource0 = function (data) {
@@ -150,10 +151,23 @@ GameBoyAdvanceDMA3.prototype.requestDMA = function (DMAType) {
         this.DMACore.update();
     }
 }
+GameBoyAdvanceDMA3.prototype.requestDisplaySync = function () {
+	//Called from LCD controller state machine on line 162:
+	if (this.displaySyncEnable) {
+		this.displaySyncEnable = false;
+		this.enabled = this.DMA_REQUEST_TYPE.DISPLAY_SYNC | 0;
+	}
+}
 GameBoyAdvanceDMA3.prototype.enableDMAChannel = function () {
     if ((this.enabled | 0) == (this.DMA_REQUEST_TYPE.IMMEDIATE | 0)) {
         //Flag immediate DMA transfers for processing now:
         this.pending = this.DMA_REQUEST_TYPE.IMMEDIATE | 0;
+    }
+	else if ((this.enabled | 0) == (this.DMA_REQUEST_TYPE.DISPLAY_SYNC | 0)) {
+        //Trigger display sync DMA shadow enable and auto-check on line 162:
+        this.enabled = 0;
+		this.displaySyncEnable = true;
+		return;
     }
     //Shadow copy the word count:
     this.wordCountShadow = this.wordCount | 0;

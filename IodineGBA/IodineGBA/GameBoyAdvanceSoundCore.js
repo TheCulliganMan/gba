@@ -118,7 +118,7 @@ GameBoyAdvanceSound.prototype.addClocks = function (clocks) {
     clocks = clocks | 0;
     this.audioTicks = ((this.audioTicks | 0) + (clocks | 0)) | 0;
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceSound.prototype.generateAudioReal = function (numSamples) {
         numSamples = numSamples | 0;
@@ -321,7 +321,7 @@ GameBoyAdvanceSound.prototype.computeAudioChannels = function () {
     //Find the number of clocks to next closest counter event:
     this.audioClocksUntilNextEventCounter = this.audioClocksUntilNextEvent = Math.min(this.channel1.FrequencyCounter | 0, this.channel2.FrequencyCounter | 0, this.channel3.counter | 0, this.channel4.counter | 0) | 0;
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceSound.prototype.CGBMixerOutputLevelCache = function () {
         this.CGBMixerOutputCacheLeft = Math.imul(((this.channel1.currentSampleLeftTrimary | 0) + (this.channel2.currentSampleLeftTrimary | 0) + (this.channel3.currentSampleLeftSecondary | 0) + (this.channel4.currentSampleLeftSecondary | 0)) | 0, this.VinLeftChannelMasterVolume | 0) | 0;

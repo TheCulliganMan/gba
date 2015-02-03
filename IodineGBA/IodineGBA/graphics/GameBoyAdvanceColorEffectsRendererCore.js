@@ -58,7 +58,7 @@ GameBoyAdvanceColorEffectsRenderer.prototype.process = function (lowerPixel, top
     }
     return topPixel | 0;
 }
-if (!!Math.imul) {
+if (typeof Math.imul == "function") {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceColorEffectsRenderer.prototype.alphaBlendNormal = function (topPixel, lowerPixel) {
         topPixel = topPixel | 0;
