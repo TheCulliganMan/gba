@@ -103,6 +103,44 @@ function ARMCPSRAttributeTable() {
             return 1;
         }
     };
+    function checkConditionalCode(execute) {
+        execute = execute | 0;
+        /*
+         Instruction Decode Pattern:
+         C = Conditional Code Bit;
+         X = Possible opcode bit;
+         N = Data Bit, definitely not an opcode bit
+         OPCODE: CCCCXXXXXXXXXXXXNNNNNNNNXXXXNNNN
+         
+         For this function, we decode the top 3 bits for the conditional code test:
+         */
+        switch (execute >>> 29) {
+            case 0x0:
+                execute = (zero == 0) ? 0 : 0x10000000;
+                break;
+            case 0x1:
+                execute = (carry) ? 0 : 0x10000000;
+                break;
+            case 0x2:
+                execute = (negative < 0) ? 0 : 0x10000000;
+                break;
+            case 0x3:
+                execute = (overflow) ? 0 : 0x10000000;
+                break;
+            case 0x4:
+                execute = (carry && zero != 0) ? 0 : 0x10000000;
+                break;
+            case 0x5:
+                execute = ((negative < 0) == overflow) ? 0 : 0x10000000;
+                break;
+            case 0x6:
+                execute = (zero != 0 && (negative < 0) == overflow) ? 0 : 0x10000000;
+                break;
+            default:
+                execute = 0;
+        }
+        return execute | 0;
+    }
     function setNZInt(toSet) {
         toSet = toSet | 0;
         negative = toSet | 0;
@@ -216,6 +254,7 @@ function ARMCPSRAttributeTable() {
         "getCarry":getCarry,
         "getCarryInt":getCarryInt,
         "getCarryIntReverse":getCarryIntReverse,
+        "checkConditionalCode":checkConditionalCode,
         "setNZInt":setNZInt,
         "setADDFlags":setADDFlags,
         "setADCFlags":setADCFlags,

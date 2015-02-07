@@ -99,11 +99,7 @@ GameBoyAdvanceIO.prototype.runARM = function () {
                 this.tickBubble();
                 break;
             default: //Handle lesser called / End of stepping
-                /*
-                 * Don't inline this into the top switch.
-                 * JITs shit themselves on better optimizations on larger switches.
-                 * Also, JIT compilation time is smaller on smaller switches.
-                 */
+                //Dispatch on IRQ/DMA/HALT/STOP/END bit flags
                 switch (this.systemStatus >> 2) {
                     case 0x2:
                         //IRQ Handle State:
@@ -123,6 +119,7 @@ GameBoyAdvanceIO.prototype.runARM = function () {
                         this.handleHalt();
                         break;
                     default: //Handle Stop State
+                        //THUMB flagged stuff falls to here intentionally:
                         //End of Stepping and/or CPU run loop switch:
                         if ((this.systemStatus & 0x84) != 0) {
                             return;
@@ -146,11 +143,7 @@ GameBoyAdvanceIO.prototype.runTHUMB = function () {
                 this.tickBubble();
                 break;
             default: //Handle lesser called / End of stepping
-                /*
-                 * Don't inline this into the top switch.
-                 * JITs shit themselves on better optimizations on larger switches.
-                 * Also, JIT compilation time is smaller on smaller switches.
-                 */
+                //Dispatch on IRQ/DMA/HALT/STOP/END bit flags
                 switch (this.systemStatus >> 2) {
                     case 0x3:
                         //IRQ Handle State:
@@ -170,6 +163,7 @@ GameBoyAdvanceIO.prototype.runTHUMB = function () {
                         this.handleHalt();
                         break;
                     default: //Handle Stop State
+                        //ARM flagged stuff falls to here intentionally:
                         //End of Stepping and/or CPU run loop switch:
                         if ((this.systemStatus & 0x84) != 0x4) {
                             return;

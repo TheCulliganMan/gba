@@ -39,150 +39,17 @@ ARMInstructionSet.prototype.executeIteration = function () {
     this.decode = this.fetch | 0;
 }
 ARMInstructionSet.prototype.executeConditionalCode = function () {
-    /*
-     Instruction Decode Pattern:
-     C = Conditional Code Bit;
-     X = Possible opcode bit;
-     N = Data Bit, definitely not an opcode bit
-     OPCODE: CCCCXXXXXXXXXXXXNNNNNNNNXXXXNNNN
-     
-     For this function, we decode the top 4 bits for the conditional code test:
-     */
-    switch (this.execute >>> 28) {
-        case 0x0:        //EQ (equal)
-            if (this.branchFlags.getZero()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0x1:        //NE (not equal)
-            if (!this.branchFlags.getZero()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0x2:        //CS (unsigned higher or same)
-            if (this.branchFlags.getCarry()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0x3:        //CC (unsigned lower)
-            if (!this.branchFlags.getCarry()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0x4:        //MI (negative)
-            if (this.branchFlags.getNegative()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0x5:        //PL (positive or zero)
-            if (!this.branchFlags.getNegative()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0x6:        //VS (overflow)
-            if (this.branchFlags.getOverflow()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0x7:        //VC (no overflow)
-            if (!this.branchFlags.getOverflow()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0x8:        //HI (unsigned higher)
-            if (this.branchFlags.getCarry() && !this.branchFlags.getZero()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0x9:        //LS (unsigned lower or same)
-            if (!this.branchFlags.getCarry() || this.branchFlags.getZero()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0xA:        //GE (greater or equal)
-            if (this.branchFlags.getNegative() == this.branchFlags.getOverflow()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0xB:        //LT (less than)
-            if (this.branchFlags.getNegative() != this.branchFlags.getOverflow()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0xC:        //GT (greater than)
-            if (!this.branchFlags.getZero() && this.branchFlags.getNegative() == this.branchFlags.getOverflow()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0xD:        //LE (less than or equal)
-            if (this.branchFlags.getZero() || this.branchFlags.getNegative() != this.branchFlags.getOverflow()) {
-                this.executeDecoded();
-            }
-            else {
-                //Increment the program counter if we didn't just branch:
-                this.incrementProgramCounter();
-            }
-            break;
-        case 0xE:        //AL (always)
-            this.executeDecoded();
-            break;
-        default:
-            //Increment the program counter if we didn't just branch:
-            this.incrementProgramCounter();
+    //LSB of condition code is used to reverse the test logic:
+    if ((this.execute & 0x10000000 ^ this.branchFlags.checkConditionalCode(this.execute | 0)) == 0) {
+        //Passed the condition code test, so execute:
+        this.executeDecoded();
+    }
+    else {
+        //Increment the program counter if we failed the test:
+        this.incrementProgramCounter();
     }
 }
+
 ARMInstructionSet.prototype.executeBubble = function () {
     //Push the new fetch access:
     this.fetch = this.memory.memoryReadCPU32(this.readPC() | 0) | 0;
@@ -667,7 +534,9 @@ ARMInstructionSet.prototype.ADC = function () {
     var operand2 = this.operand2OP_DataProcessing1() | 0;
     //Perform Addition w/ Carry:
     //Update destination register:
-    this.guard12OffsetRegisterWrite(((operand1 | 0) + (operand2 | 0) + (this.branchFlags.getCarryInt() | 0)) | 0);
+	operand1 = ((operand1 | 0) + (operand2 | 0)) | 0;
+	operand1 = ((operand1 | 0) + (this.branchFlags.getCarryInt() | 0)) | 0;
+    this.guard12OffsetRegisterWrite(operand1 | 0);
 }
 ARMInstructionSet.prototype.ADC2 = function () {
     //Increment PC:
@@ -676,7 +545,9 @@ ARMInstructionSet.prototype.ADC2 = function () {
     var operand2 = this.operand2OP_DataProcessing3() | 0;
     //Perform Addition w/ Carry:
     //Update destination register:
-    this.guard12OffsetRegisterWrite2(((operand1 | 0) + (operand2 | 0) + (this.branchFlags.getCarryInt() | 0)) | 0);
+	operand1 = ((operand1 | 0) + (operand2 | 0)) | 0;
+	operand1 = ((operand1 | 0) + (this.branchFlags.getCarryInt() | 0)) | 0;
+    this.guard12OffsetRegisterWrite2(operand1 | 0);
 }
 ARMInstructionSet.prototype.ADCS = function () {
     var operand1 = this.read16OffsetRegister() | 0;
@@ -697,7 +568,9 @@ ARMInstructionSet.prototype.SBC = function () {
     var operand2 = this.operand2OP_DataProcessing1() | 0;
     //Perform Subtraction w/ Carry:
     //Update destination register:
-    this.guard12OffsetRegisterWrite(((operand1 | 0) - (operand2 | 0) - (this.branchFlags.getCarryIntReverse() | 0)) | 0);
+	operand1 = ((operand1 | 0) - (operand2 | 0)) | 0;
+	operand1 = ((operand1 | 0) - (this.branchFlags.getCarryIntReverse() | 0)) | 0;
+    this.guard12OffsetRegisterWrite(operand1 | 0);
 }
 ARMInstructionSet.prototype.SBC2 = function () {
     //Increment PC:
@@ -706,7 +579,9 @@ ARMInstructionSet.prototype.SBC2 = function () {
     var operand2 = this.operand2OP_DataProcessing3() | 0;
     //Perform Subtraction w/ Carry:
     //Update destination register:
-    this.guard12OffsetRegisterWrite2(((operand1 | 0) - (operand2 | 0) - (this.branchFlags.getCarryIntReverse() | 0)) | 0);
+	operand1 = ((operand1 | 0) - (operand2 | 0)) | 0;
+	operand1 = ((operand1 | 0) - (this.branchFlags.getCarryIntReverse() | 0)) | 0;
+    this.guard12OffsetRegisterWrite2(operand1 | 0);
 }
 ARMInstructionSet.prototype.SBCS = function () {
     var operand1 = this.read16OffsetRegister() | 0;
@@ -727,7 +602,9 @@ ARMInstructionSet.prototype.RSC = function () {
     var operand2 = this.operand2OP_DataProcessing1() | 0;
     //Perform Reverse Subtraction w/ Carry:
     //Update destination register:
-    this.guard12OffsetRegisterWrite(((operand2 | 0) - (operand1 | 0) - (this.branchFlags.getCarryIntReverse() | 0)) | 0);
+	operand1 = ((operand2 | 0) - (operand1 | 0)) | 0;
+	operand1 = ((operand1 | 0) - (this.branchFlags.getCarryIntReverse() | 0)) | 0;
+    this.guard12OffsetRegisterWrite(operand1 | 0);
 }
 ARMInstructionSet.prototype.RSC2 = function () {
     //Increment PC:
@@ -736,7 +613,9 @@ ARMInstructionSet.prototype.RSC2 = function () {
     var operand2 = this.operand2OP_DataProcessing3() | 0;
     //Perform Reverse Subtraction w/ Carry:
     //Update destination register:
-    this.guard12OffsetRegisterWrite2(((operand2 | 0) - (operand1 | 0) - (this.branchFlags.getCarryIntReverse() | 0)) | 0);
+	operand1 = ((operand2 | 0) - (operand1 | 0)) | 0;
+	operand1 = ((operand1 | 0) - (this.branchFlags.getCarryIntReverse() | 0)) | 0;
+    this.guard12OffsetRegisterWrite2(operand1 | 0);
 }
 ARMInstructionSet.prototype.RSCS = function () {
     var operand1 = this.read16OffsetRegister() | 0;
@@ -2508,7 +2387,7 @@ ARMInstructionSet.prototype.rris = function () {
     }
     else {
         //RRX
-        var rrxValue = ((this.branchFlags.getCarry()) ? 0x80000000 : 0) | (register >>> 0x1);
+        var rrxValue = (this.branchFlags.getCarryInt() << 31) | (register >>> 0x1);
         this.branchFlags.setCarryInt(register << 31);
         register = rrxValue | 0;
     }
@@ -2577,7 +2456,7 @@ ARMInstructionSet.prototype.rc = function () {
     return (
             (this.branchFlags.getNegativeInt() & 0x80000000) |
             ((this.branchFlags.getZero()) ? 0x40000000 : 0) |
-            ((this.branchFlags.getCarry()) ? 0x20000000 : 0) |
+            (this.branchFlags.getCarryInt() << 29) |
             ((this.branchFlags.getOverflow()) ? 0x10000000 : 0) |
             this.CPUCore.modeFlags
             );
