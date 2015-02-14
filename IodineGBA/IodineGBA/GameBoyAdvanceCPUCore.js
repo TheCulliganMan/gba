@@ -301,10 +301,7 @@ GameBoyAdvanceCPU.prototype.SPSRtoCPSR = function () {
             return this.modeFlags & 0x20;
     }
     var spsr = this.SPSR[bank | 0] | 0;
-    this.branchFlags.setNegative((spsr & 0x800) != 0);
-    this.branchFlags.setZero((spsr & 0x400) != 0);
-    this.branchFlags.setCarry((spsr & 0x200) != 0);
-    this.branchFlags.setOverflow((spsr & 0x100) != 0);
+    this.branchFlags.setNZCV(spsr << 20);
     this.switchRegisterBank(spsr & 0x1F);
     this.modeFlags = spsr & 0xFF;
     this.assertIRQ();
@@ -320,18 +317,7 @@ GameBoyAdvanceCPU.prototype.switchMode = function (newMode) {
 GameBoyAdvanceCPU.prototype.CPSRtoSPSR = function (newMode) {
     //Used for entering an exception and saving the previous state:
     var spsr = this.modeFlags & 0xFF;
-    if ((this.branchFlags.getNegativeInt() | 0) < 0) {
-        spsr = spsr | 0x800;
-    }
-    if ((this.branchFlags.getZeroInt() | 0) == 0) {
-        spsr = spsr | 0x400;
-    }
-    if (!!this.branchFlags.getCarry()) {
-        spsr = spsr | 0x200;
-    }
-    if (!!this.branchFlags.getOverflow()) {
-        spsr = spsr | 0x100;
-    }
+    spsr = spsr | (this.branchFlags.getNZCV() >> 20);
     switch (newMode | 0) {
         case 0x12:    //IRQ
             this.SPSR[1] = spsr | 0;
