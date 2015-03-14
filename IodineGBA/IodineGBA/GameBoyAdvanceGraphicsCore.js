@@ -17,7 +17,6 @@
  */
 function GameBoyAdvanceGraphics(IOCore) {
     this.IOCore = IOCore;
-    this.settings = IOCore.settings;
     this.coreExposed = IOCore.coreExposed;
     this.initializeIO();
     this.initializeRenderer();
@@ -28,8 +27,6 @@ GameBoyAdvanceGraphics.prototype.initializeIO = function () {
     this.HBlankIntervalFree = false;
     this.VRAMOneDimensional = false;
     this.forcedBlank = true;
-    this.isRendering = false;
-    this.isOAMRendering = false;
     this.display = 0;
     this.greenSwap = false;
     this.inVBlank = false;
@@ -141,7 +138,8 @@ GameBoyAdvanceGraphics.prototype.clockLCDStatePostRender = function () {
 GameBoyAdvanceGraphics.prototype.clockLCDNextLine = function () {
     /*We've now overflowed the LCD scan line state machine counter,
      which tells us we need to be on a new scan-line and refresh over.*/
-    this.renderedScanLine = this.inHBlank = false;                  //Un-mark HBlank and line render.
+    this.renderedScanLine = false;                                  //Unmark line render.
+    this.inHBlank = false;                                          //Un-mark HBlank.
     //De-clock for starting on new scan-line:
     this.LCDTicks = ((this.LCDTicks | 0) - 1232) | 0;               //We start out at the beginning of the next line.
     //Increment scanline counter:
@@ -404,8 +402,9 @@ GameBoyAdvanceGraphics.prototype.incrementScanLineQueue = function () {
 }
 GameBoyAdvanceGraphics.prototype.isRenderingCheckPreprocess = function () {
     var isInVisibleLines = (!this.forcedBlank && !this.inVBlank);
-    this.isRendering = (isInVisibleLines && !this.inHBlank);
-    this.isOAMRendering = (isInVisibleLines && (!this.inHBlank || !this.HBlankIntervalFree));
+    var isRendering = (isInVisibleLines && !this.inHBlank) ? 2 : 1;
+    var isOAMRendering = (isInVisibleLines && (!this.inHBlank || !this.HBlankIntervalFree)) ? 2 : 1;
+    this.IOCore.wait.updateRenderStatus(isRendering | 0, isOAMRendering | 0);
 }
 GameBoyAdvanceGraphics.prototype.compositorPreprocess = function () {
     this.compositor.preprocess((this.WINOutside & 0x20) == 0x20 || (this.display & 0xE0) == 0);

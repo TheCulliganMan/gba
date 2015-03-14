@@ -179,13 +179,13 @@ GameBoyAdvanceDMA1.prototype.handleDMACopy = function () {
     if ((this.enabled | 0) == (this.DMA_REQUEST_TYPE.FIFO_A | 0) || (this.is32Bit | 0) == 4) {
         //32-bit Transfer:
         this.DMACore.fetch = this.memory.memoryRead32(source | 0) | 0;
-        this.memory.memoryWrite32(destination | 0, this.DMACore.fetch | 0);
+        this.memory.memoryWriteDMA32(destination | 0, this.DMACore.fetch | 0);
         this.decrementWordCount(source | 0, destination | 0, 4);
     }
     else {
         //16-bit Transfer:
         this.DMACore.fetch = this.memory.memoryRead16(source | 0) | 0;
-        this.memory.memoryWrite16(destination | 0, this.DMACore.fetch | 0);
+        this.memory.memoryWriteDMA16(destination | 0, this.DMACore.fetch | 0);
         this.DMACore.fetch |= this.DMACore.fetch << 16;    //Mirror extreme edge case?
         this.decrementWordCount(source | 0, destination | 0, 2);
     }

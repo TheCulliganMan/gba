@@ -39,7 +39,11 @@ function GameBoyAdvanceChannel3Synth(sound) {
     this.nr34 = 0;
     this.cachedSample = 0;
     this.PCM = getInt8Array(0x40);
-    this.WAVERAM = getUint8Array(0x20);
+    this.PCM16 = getUint16View(this.PCM);
+    this.PCM32 = getInt32View(this.PCM);
+    this.WAVERAM8 = getUint8Array(0x20);
+    this.WAVERAM16 = getUint16View(this.WAVERAM8);
+    this.WAVERAM32 = getInt32View(this.WAVERAM8);
 }
 GameBoyAdvanceChannel3Synth.prototype.disabled = function () {
     //Clear NR30:
@@ -103,21 +107,120 @@ GameBoyAdvanceChannel3Synth.prototype.outputLevelSecondaryCache = function () {
         this.currentSampleRightSecondary = 0;
     }
 }
-GameBoyAdvanceChannel3Synth.prototype.writeWAVE = function (address, data) {
-    address = address | 0;
-    data = data | 0;
-    if (this.canPlay) {
-        this.sound.audioJIT();
-    }
+GameBoyAdvanceChannel3Synth.prototype.readWAVE8 = function (address) {
     address = ((address | 0) + (this.WAVERAMBankAccessed >> 1)) | 0;
-    this.WAVERAM[address | 0] = data | 0;
-    address <<= 1;
-    this.PCM[address | 0] = data >> 4;
-    this.PCM[address | 1] = data & 0xF;
+    return this.WAVERAM8[address | 0] | 0;
 }
-GameBoyAdvanceChannel3Synth.prototype.readWAVE = function (address) {
-    address = ((address | 0) + (this.WAVERAMBankAccessed >> 1)) | 0;
-    return this.WAVERAM[address | 0] | 0;
+if (__LITTLE_ENDIAN__) {
+    GameBoyAdvanceChannel3Synth.prototype.writeWAVE8 = function (address, data) {
+        address = address | 0;
+        data = data | 0;
+        if (this.canPlay) {
+            this.sound.audioJIT();
+        }
+        address = ((address | 0) + (this.WAVERAMBankAccessed >> 1)) | 0;
+        this.WAVERAM8[address | 0] = data & 0xFF;
+        var temp = ((data >> 4) & 0xF);
+        temp = temp | ((data & 0xF) << 8);
+        this.PCM16[address | 0] = temp | 0;
+    }
+    GameBoyAdvanceChannel3Synth.prototype.writeWAVE16 = function (address, data) {
+        address = address | 0;
+        data = data | 0;
+        if (this.canPlay) {
+            this.sound.audioJIT();
+        }
+        address = ((address | 0) + (this.WAVERAMBankAccessed >> 2)) | 0;
+        this.WAVERAM16[address | 0] = data & 0xFFFF;
+        var temp = ((data >> 4) & 0xF);
+        temp = temp | ((data & 0xF) << 8);
+        temp = temp | ((data & 0xF000) << 4);
+        temp = temp | ((data & 0xF00) << 16);
+        this.PCM32[address | 0] = temp | 0;
+    }
+    GameBoyAdvanceChannel3Synth.prototype.writeWAVE32 = function (address, data) {
+        address = address | 0;
+        data = data | 0;
+        if (this.canPlay) {
+            this.sound.audioJIT();
+        }
+        address = ((address | 0) + (this.WAVERAMBankAccessed >> 3)) | 0;
+        this.WAVERAM32[address | 0] = data | 0;
+        var temp = (data >> 4) & 0xF;
+        temp = temp | ((data & 0xF) << 8);
+        temp = temp | ((data & 0xF000) << 4);
+        temp = temp | ((data & 0xF00) << 16);
+        address = address << 1;
+        this.PCM32[address | 0] = temp | 0;
+        temp = (data >> 20) & 0xF;
+        temp = temp | ((data >> 8) & 0xF00);
+        temp = temp | ((data >> 12) & 0xF0000);
+        temp = temp | (data & 0xF000000);
+        this.PCM32[address | 1] = temp | 0;
+    }
+    GameBoyAdvanceChannel3Synth.prototype.readWAVE16 = function (address) {
+        address = ((address | 0) + (this.WAVERAMBankAccessed >> 2)) | 0;
+        return this.WAVERAM16[address | 0] | 0;
+    }
+    GameBoyAdvanceChannel3Synth.prototype.readWAVE32 = function (address) {
+        address = ((address | 0) + (this.WAVERAMBankAccessed >> 3)) | 0;
+        return this.WAVERAM32[address | 0] | 0;
+    }
+}
+else {
+    GameBoyAdvanceChannel3Synth.prototype.writeWAVE8 = function (address, data) {
+        if (this.canPlay) {
+            this.sound.audioJIT();
+        }
+        address += this.WAVERAMBankAccessed >> 1;
+        this.WAVERAM8[address] = data & 0xFF;
+        address <<= 1;
+        this.PCM[address] = (data >> 4) & 0xF;
+        this.PCM[address | 1] = data & 0xF;
+    }
+    GameBoyAdvanceChannel3Synth.prototype.writeWAVE16 = function (address, data) {
+        if (this.canPlay) {
+            this.sound.audioJIT();
+        }
+        address += this.WAVERAMBankAccessed >> 2;
+        address <<= 1;
+        this.WAVERAM8[address] = data & 0xFF;
+        this.WAVERAM8[address | 1] = (data >> 8) & 0xFF;
+        address <<= 1;
+        this.PCM[address] = (data >> 4) & 0xF;
+        this.PCM[address | 1] = data & 0xF;
+        this.PCM[address | 2] = (data >> 12) & 0xF;
+        this.PCM[address | 3] = (data >> 8) & 0xF;
+    }
+    GameBoyAdvanceChannel3Synth.prototype.writeWAVE32 = function (address, data) {
+        if (this.canPlay) {
+            this.sound.audioJIT();
+        }
+        address += this.WAVERAMBankAccessed >> 3;
+        address <<= 2;
+        this.WAVERAM8[address] = data & 0xFF;
+        this.WAVERAM8[address | 1] = (data >> 8) & 0xFF;
+        this.WAVERAM8[address | 2] = (data >> 16) & 0xFF;
+        this.WAVERAM8[address | 3] = data >>> 24;
+        address <<= 1;
+        this.PCM[address] = (data >> 4) & 0xF;
+        this.PCM[address | 1] = data & 0xF;
+        this.PCM[address | 2] = (data >> 12) & 0xF;
+        this.PCM[address | 3] = (data >> 8) & 0xF;
+        this.PCM[address | 4] = (data >> 20) & 0xF;
+        this.PCM[address | 5] = (data >> 16) & 0xF;
+        this.PCM[address | 6] = data >>> 28;
+        this.PCM[address | 7] = (data >> 24) & 0xF;
+    }
+    GameBoyAdvanceChannel3Synth.prototype.readWAVE16 = function (address) {
+        address += this.WAVERAMBankAccessed >> 1;
+        return (this.WAVERAM8[address] | (this.WAVERAM8[address | 1] << 8));
+    }
+    GameBoyAdvanceChannel3Synth.prototype.readWAVE32 = function (address) {
+        address += this.WAVERAMBankAccessed >> 1;
+        return (this.WAVERAM8[address] | (this.WAVERAM8[address | 1] << 8) |
+                (this.WAVERAM8[address | 2] << 16) | (this.WAVERAM8[address | 3] << 24));
+    }
 }
 GameBoyAdvanceChannel3Synth.prototype.enableCheck = function () {
     this.Enabled = (/*this.canPlay && */(this.consecutive || (this.totalLength | 0) > 0));

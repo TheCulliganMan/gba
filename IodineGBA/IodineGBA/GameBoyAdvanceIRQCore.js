@@ -89,13 +89,11 @@ GameBoyAdvanceIRQ.prototype.nextEventTime = function () {
     clocks = this.findClosestEvent(clocks | 0, this.IOCore.timer.nextTimer1IRQEventTime() | 0, 0x10) | 0;
     clocks = this.findClosestEvent(clocks | 0, this.IOCore.timer.nextTimer2IRQEventTime() | 0, 0x20) | 0;
     clocks = this.findClosestEvent(clocks | 0, this.IOCore.timer.nextTimer3IRQEventTime() | 0, 0x40) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.serial.nextIRQEventTime() | 0, 0x80) | 0;
+    //clocks = this.findClosestEvent(clocks | 0, this.IOCore.serial.nextIRQEventTime() | 0, 0x80) | 0;
     clocks = this.findClosestEvent(clocks | 0, this.IOCore.dma.channels[0].nextIRQEventTime() | 0, 0x100) | 0;
     clocks = this.findClosestEvent(clocks | 0, this.IOCore.dma.channels[1].nextIRQEventTime() | 0, 0x200) | 0;
     clocks = this.findClosestEvent(clocks | 0, this.IOCore.dma.channels[2].nextIRQEventTime() | 0, 0x400) | 0;
     clocks = this.findClosestEvent(clocks | 0, this.IOCore.dma.channels[3].nextIRQEventTime() | 0, 0x800) | 0;
-    //JoyPad input state should never update while we're in halt:
-    //clocks = this.findClosestEvent(clocks | 0, this.IOCore.joypad.nextIRQEventTime() | 0, 0x1000) | 0;
     //clocks = this.findClosestEvent(clocks | 0, this.IOCore.cartridge.nextIRQEventTime() | 0, 0x2000) | 0;
     return clocks | 0;
 }

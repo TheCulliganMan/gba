@@ -114,10 +114,6 @@ GameBoyAdvanceJoyPad.prototype.checkForIRQ = function () {
         this.IOCore.irq.requestIRQ(0x1000);
     }
 }
-/*GameBoyAdvanceJoyPad.prototype.nextIRQEventTime = function {
-    //Always return -1 here, as we don't input joypad updates at the same time we're running the interp loop:
-    return -1;
-}*/
 GameBoyAdvanceJoyPad.prototype.readKeyStatus0 = function () {
     return this.keyInput & 0xFF;
 }

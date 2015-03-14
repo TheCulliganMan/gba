@@ -2,7 +2,7 @@
 /*
  * This file is part of IodineGBA
  *
- * Copyright (C) 2012-2013 Grant Galitz
+ * Copyright (C) 2012-2014 Grant Galitz
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,7 +20,7 @@ function GameBoyAdvanceFIFO() {
     this.position = 0;
     this.buffer = getInt8Array(0x20);
 }
-GameBoyAdvanceFIFO.prototype.push = function (sample) {
+GameBoyAdvanceFIFO.prototype.push8 = function (sample) {
     sample = sample | 0;
     var writePosition = ((this.position | 0) + (this.count | 0)) | 0;
     this.buffer[writePosition & 0x1F] = (sample << 24) >> 24;
@@ -28,6 +28,18 @@ GameBoyAdvanceFIFO.prototype.push = function (sample) {
         //Should we cap at 0x20 or overflow back to 0 and reset queue?
         this.count = ((this.count | 0) + 1) | 0;
     }
+}
+GameBoyAdvanceFIFO.prototype.push16 = function (sample) {
+    sample = sample | 0;
+    this.push8(sample | 0);
+    this.push8(sample >> 8);
+}
+GameBoyAdvanceFIFO.prototype.push32 = function (sample) {
+    sample = sample | 0;
+    this.push8(sample | 0);
+    this.push8(sample >> 8);
+    this.push8(sample >> 16);
+    this.push8(sample >> 24);
 }
 GameBoyAdvanceFIFO.prototype.shift = function () {
     var output = 0;

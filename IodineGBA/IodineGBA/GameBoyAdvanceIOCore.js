@@ -188,13 +188,6 @@ GameBoyAdvanceIO.prototype.updateCoreSingle = function () {
         this.updateCoreSpill();
     }
 }
-GameBoyAdvanceIO.prototype.updateCoreTwice = function () {
-    //This is used during normal/dma modes of operation:
-    this.accumulatedClocks = ((this.accumulatedClocks | 0) + 2) | 0;
-    if ((this.accumulatedClocks | 0) >= (this.nextEventClocks | 0)) {
-        this.updateCoreSpill();
-    }
-}
 GameBoyAdvanceIO.prototype.updateCoreSpill = function () {
     //Invalidate & recompute new event times:
     this.updateCoreClocking();

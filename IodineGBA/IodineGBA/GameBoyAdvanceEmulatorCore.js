@@ -69,7 +69,7 @@ GameBoyAdvanceEmulator.prototype.play = function () {
     if (this.paused) {
         this.startTimer();
         this.paused = false;
-        if (!this.loaded) {
+        if (!this.loaded && this.BIOS && this.ROM) {
             this.initializeCore();
             this.loaded = true;
             this.importSave();

@@ -16,11 +16,13 @@
  *
  */
 function ARMCPSRAttributeTable() {
-    var negative = 0;          //N Bit
-    var zero = 1;              //Z Bit
-    var overflow = 0;          //V Bit
-    var carry = 0;             //C Bit
+    //"use asm";
+    var negative = 0;
+    var zero = 1;
+    var carry = 0;
+    var overflow = 0;
     function setNegative(toSet) {
+        toSet = toSet | 0;
         negative = toSet | 0;
     };
     function setNegativeFalse() {
@@ -30,6 +32,7 @@ function ARMCPSRAttributeTable() {
         return negative | 0;
     };
     function setZero(toSet) {
+        toSet = toSet | 0;
         zero = toSet | 0;
     };
     function setZeroTrue() {
@@ -51,6 +54,7 @@ function ARMCPSRAttributeTable() {
         return overflow | 0;
     };
     function setCarry(toSet) {
+        toSet = toSet | 0;
         carry = toSet | 0;
     };
     function setCarryFalse() {
@@ -60,7 +64,7 @@ function ARMCPSRAttributeTable() {
         return carry | 0;
     };
     function getCarryReverse() {
-        return ~carry;
+        return (~carry) | 0;
     };
     function checkConditionalCode(execute) {
         execute = execute | 0;
@@ -73,9 +77,9 @@ function ARMCPSRAttributeTable() {
          
          For this function, we decode the top 3 bits for the conditional code test:
          */
-        switch (execute >>> 29) {
+        switch ((execute >>> 29) | 0) {
             case 0x4:
-                if (zero == 0) {
+                if ((zero | 0) == 0) {
                     execute = -1;
                     break;
                 }
@@ -89,7 +93,7 @@ function ARMCPSRAttributeTable() {
                 execute = ~overflow;
                 break;
             case 0x6:
-                if (zero == 0) {
+                if ((zero | 0) == 0) {
                     execute = -1;
                     break;
                 }
@@ -97,7 +101,7 @@ function ARMCPSRAttributeTable() {
                 execute = negative ^ overflow;
                 break;
             case 0x0:
-                if (zero != 0) {
+                if ((zero | 0) != 0) {
                     execute = -1;
                     break;
                 }
@@ -119,8 +123,9 @@ function ARMCPSRAttributeTable() {
         overflow = toSet << 3;
     };
     function getNZCV() {
-        var toSet = negative & 0x80000000;
-        if (zero == 0) {
+        var toSet = 0;
+        toSet = negative & 0x80000000;
+        if ((zero | 0) == 0) {
             toSet = toSet | 0x40000000;
         }
         toSet = toSet | ((carry >>> 31) << 29);
@@ -133,7 +138,12 @@ function ARMCPSRAttributeTable() {
         operand2 = operand2 | 0;
         negative = ((operand1 | 0) + (operand2 | 0)) | 0;
         zero = negative | 0;
-        carry = ((negative >>> 0) < (operand1 >>> 0)) ? -1 : 0;
+        if ((negative >>> 0) < (operand1 >>> 0)) {
+            carry = -1;
+        }
+        else {
+            carry = 0;
+        }
         overflow = (~(operand1 ^ operand2)) & (operand1 ^ negative);
         return negative | 0;
     };
@@ -141,44 +151,62 @@ function ARMCPSRAttributeTable() {
         //Update flags for an addition operation:
         operand1 = operand1 | 0;
         operand2 = operand2 | 0;
-        //We let this get outside of int32 on purpose:
-        var unsignedResult = (operand1 >>> 0) + (operand2 >>> 0) + (carry >>> 31);
-        carry = (unsignedResult > 0xFFFFFFFF) ? -1 : 0;
-        zero = unsignedResult | 0;
-        negative = zero | 0;
-        overflow = (~(operand1 ^ operand2)) & (operand1 ^ zero);
-        return zero | 0;
+        negative = ((operand1 | 0) + (operand2 | 0)) | 0;
+        negative = ((negative | 0) + (carry >>> 31)) | 0;
+        zero = negative | 0;
+        if ((negative >>> 0) < (operand1 >>> 0)) {
+            carry = -1;
+        }
+        else if ((negative >>> 0) > (operand1 >>> 0)) {
+            carry = 0;
+        }
+        overflow = (~(operand1 ^ operand2)) & (operand1 ^ negative);
+        return negative | 0;
     };
     function setSUBFlags(operand1, operand2) {
         //Update flags for a subtraction operation:
         operand1 = operand1 | 0;
         operand2 = operand2 | 0;
-        zero = (operand1 - operand2) | 0;
-        negative = zero | 0;
-        overflow = (operand1 ^ operand2) & (operand1 ^ zero);
-        carry = ((operand1 >>> 0) >= (operand2 >>> 0)) ? -1 : 0;
-        return zero | 0;
+        negative = ((operand1 | 0) - (operand2 | 0)) | 0;
+        zero = negative | 0;
+        if ((operand1 >>> 0) >= (operand2 >>> 0)) {
+            carry = -1;
+        }
+        else {
+            carry = 0;
+        }
+        overflow = (operand1 ^ operand2) & (operand1 ^ negative);
+        return negative | 0;
     };
     function setSBCFlags(operand1, operand2) {
         //Update flags for a subtraction operation:
         operand1 = operand1 | 0;
         operand2 = operand2 | 0;
-        //We let this get outside of int32 on purpose:
-        var unsignedResult = (operand1 >>> 0) - (operand2 >>> 0) - ((~carry) >>> 31);
-        carry = (unsignedResult >= 0) ? -1 : 0;
-        zero = unsignedResult | 0;
-        negative = zero | 0;
-        overflow = (operand1 ^ operand2) & (operand1 ^ zero);
-        return zero | 0;
+        negative = ((operand1 | 0) - (operand2 | 0)) | 0;
+        negative = ((negative | 0) - ((~carry) >>> 31)) | 0
+        zero = negative | 0;
+        if ((negative >>> 0) < (operand1 >>> 0)) {
+            carry = -1;
+        }
+        else if ((negative >>> 0) > (operand1 >>> 0)) {
+            carry = 0;
+        }
+        overflow = (operand1 ^ operand2) & (operand1 ^ negative);
+        return negative | 0;
     };
     function setCMPFlags(operand1, operand2) {
         //Update flags for a subtraction operation:
         operand1 = operand1 | 0;
         operand2 = operand2 | 0;
-        zero = (operand1 - operand2) | 0;
-        negative = zero | 0;
-        overflow = (operand1 ^ operand2) & (operand1 ^ zero);
-        carry = ((operand1 >>> 0) >= (operand2 >>> 0)) ? -1 : 0;
+        negative = ((operand1 | 0) - (operand2 | 0)) | 0;
+        zero = negative | 0;
+        if ((operand1 >>> 0) >= (operand2 >>> 0)) {
+            carry = -1;
+        }
+        else {
+            carry = 0;
+        }
+        overflow = (operand1 ^ operand2) & (operand1 ^ negative);
     };
     function setCMNFlags(operand1, operand2) {
         //Update flags for an addition operation:
@@ -186,38 +214,43 @@ function ARMCPSRAttributeTable() {
         operand2 = operand2 | 0;
         negative = ((operand1 | 0) + (operand2 | 0)) | 0;
         zero = negative | 0;
-        carry = ((negative >>> 0) < (operand1 >>> 0)) ? -1 : 0;
+        if ((negative >>> 0) < (operand1 >>> 0)) {
+            carry = -1;
+        }
+        else {
+            carry = 0;
+        }
         overflow = (~(operand1 ^ operand2)) & (operand1 ^ negative);
     };
     function BGE() {
         //Branch if Negative equal to Overflow
-        return negative ^ overflow;
+        return (negative ^ overflow) | 0;
     };
     return {
-        "setNegative":setNegative,
-        "setNegativeFalse":setNegativeFalse,
-        "getNegative":getNegative,
-        "setZero":setZero,
-        "setZeroTrue":setZeroTrue,
-        "setZeroFalse":setZeroFalse,
-        "getZero":getZero,
-        "setOverflowTrue":setOverflowTrue,
-        "setOverflowFalse":setOverflowFalse,
-        "getOverflow":getOverflow,
-        "setCarry":setCarry,
-        "setCarryFalse":setCarryFalse,
-        "getCarry":getCarry,
-        "getCarryReverse":getCarryReverse,
-        "checkConditionalCode":checkConditionalCode,
-        "setNZInt":setNZInt,
-        "setNZCV":setNZCV,
-        "getNZCV":getNZCV,
-        "setADDFlags":setADDFlags,
-        "setADCFlags":setADCFlags,
-        "setSUBFlags":setSUBFlags,
-        "setSBCFlags":setSBCFlags,
-        "setCMPFlags":setCMPFlags,
-        "setCMNFlags":setCMNFlags,
-        "BGE":BGE
+        setNegative:setNegative,
+        setNegativeFalse:setNegativeFalse,
+        getNegative:getNegative,
+        setZero:setZero,
+        setZeroTrue:setZeroTrue,
+        setZeroFalse:setZeroFalse,
+        getZero:getZero,
+        setOverflowTrue:setOverflowTrue,
+        setOverflowFalse:setOverflowFalse,
+        getOverflow:getOverflow,
+        setCarry:setCarry,
+        setCarryFalse:setCarryFalse,
+        getCarry:getCarry,
+        getCarryReverse:getCarryReverse,
+        checkConditionalCode:checkConditionalCode,
+        setNZInt:setNZInt,
+        setNZCV:setNZCV,
+        getNZCV:getNZCV,
+        setADDFlags:setADDFlags,
+        setADCFlags:setADCFlags,
+        setSUBFlags:setSUBFlags,
+        setSBCFlags:setSBCFlags,
+        setCMPFlags:setCMPFlags,
+        setCMNFlags:setCMNFlags,
+        BGE:BGE
     };
 }
