@@ -2,7 +2,7 @@
 /*
  * This file is part of IodineGBA
  *
- * Copyright (C) 2012-2014 Grant Galitz
+ * Copyright (C) 2012-2015 Grant Galitz
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,12 +18,17 @@
 function GameBoyAdvanceIRQ(IOCore) {
     //Build references:
     this.IOCore = IOCore;
-    this.initializeIRQState();
 }
-GameBoyAdvanceIRQ.prototype.initializeIRQState = function () {
+GameBoyAdvanceIRQ.prototype.initialize = function () {
     this.interruptsEnabled = 0;
     this.interruptsRequested = 0;
     this.IME = false;
+    this.gfx = this.IOCore.gfx;
+    this.timer = this.IOCore.timer;
+    this.dmaChannel0 = this.IOCore.dmaChannel0;
+    this.dmaChannel1 = this.IOCore.dmaChannel1;
+    this.dmaChannel2 = this.IOCore.dmaChannel2;
+    this.dmaChannel3 = this.IOCore.dmaChannel3;
 }
 GameBoyAdvanceIRQ.prototype.IRQMatch = function () {
     //Used to exit HALT:
@@ -82,18 +87,18 @@ GameBoyAdvanceIRQ.prototype.readIF1 = function () {
 }
 GameBoyAdvanceIRQ.prototype.nextEventTime = function () {
     var clocks = -1;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.gfx.nextVBlankIRQEventTime() | 0, 0x1) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.gfx.nextHBlankIRQEventTime() | 0, 0x2) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.gfx.nextVCounterIRQEventTime() | 0, 0x4) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.timer.nextTimer0IRQEventTime() | 0, 0x8) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.timer.nextTimer1IRQEventTime() | 0, 0x10) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.timer.nextTimer2IRQEventTime() | 0, 0x20) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.timer.nextTimer3IRQEventTime() | 0, 0x40) | 0;
+    clocks = this.findClosestEvent(clocks | 0, this.gfx.nextVBlankIRQEventTime() | 0, 0x1) | 0;
+    clocks = this.findClosestEvent(clocks | 0, this.gfx.nextHBlankIRQEventTime() | 0, 0x2) | 0;
+    clocks = this.findClosestEvent(clocks | 0, this.gfx.nextVCounterIRQEventTime() | 0, 0x4) | 0;
+    clocks = this.findClosestEvent(clocks | 0, this.timer.nextTimer0IRQEventTime() | 0, 0x8) | 0;
+    clocks = this.findClosestEvent(clocks | 0, this.timer.nextTimer1IRQEventTime() | 0, 0x10) | 0;
+    clocks = this.findClosestEvent(clocks | 0, this.timer.nextTimer2IRQEventTime() | 0, 0x20) | 0;
+    clocks = this.findClosestEvent(clocks | 0, this.timer.nextTimer3IRQEventTime() | 0, 0x40) | 0;
     //clocks = this.findClosestEvent(clocks | 0, this.IOCore.serial.nextIRQEventTime() | 0, 0x80) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.dma.channels[0].nextIRQEventTime() | 0, 0x100) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.dma.channels[1].nextIRQEventTime() | 0, 0x200) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.dma.channels[2].nextIRQEventTime() | 0, 0x400) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.IOCore.dma.channels[3].nextIRQEventTime() | 0, 0x800) | 0;
+    clocks = this.findClosestEvent(clocks | 0, this.dmaChannel0.nextIRQEventTime() | 0, 0x100) | 0;
+    clocks = this.findClosestEvent(clocks | 0, this.dmaChannel1.nextIRQEventTime() | 0, 0x200) | 0;
+    clocks = this.findClosestEvent(clocks | 0, this.dmaChannel2.nextIRQEventTime() | 0, 0x400) | 0;
+    clocks = this.findClosestEvent(clocks | 0, this.dmaChannel3.nextIRQEventTime() | 0, 0x800) | 0;
     //clocks = this.findClosestEvent(clocks | 0, this.IOCore.cartridge.nextIRQEventTime() | 0, 0x2000) | 0;
     return clocks | 0;
 }

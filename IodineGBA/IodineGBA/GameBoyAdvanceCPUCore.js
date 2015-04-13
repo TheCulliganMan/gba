@@ -19,15 +19,15 @@ function GameBoyAdvanceCPU(IOCore) {
     this.IOCore = IOCore;
     this.memory = this.IOCore.memory;
     this.wait = this.IOCore.wait;
-    this.mul64ResultHigh = 0;    //Scratch MUL64.
-    this.mul64ResultLow = 0;    //Scratch MUL64.
-    this.initialize();
 }
 GameBoyAdvanceCPU.prototype.initialize = function () {
+    this.mul64ResultHigh = 0;    //Scratch MUL64.
+    this.mul64ResultLow = 0;    //Scratch MUL64.
     this.initializeRegisters();
     this.ARM = new ARMInstructionSet(this);
     this.THUMB = new THUMBInstructionSet(this);
     //this.swi = new GameBoyAdvanceSWI(this);
+    this.IOCore.assignInstructionCoreReferences(this.ARM, this.THUMB);
 }
 GameBoyAdvanceCPU.prototype.initializeRegisters = function () {
     /*
@@ -640,6 +640,11 @@ GameBoyAdvanceCPU.prototype.read16 = function (address) {
     //Updating the address bus away from PC fetch:
     this.IOCore.wait.NonSequentialBroadcast();
     var data = this.memory.memoryRead16(address | 0) | 0;
+    //Unaligned access gets data rotated right:
+    if ((address & 0x1) != 0) {
+        //Rotate word right:
+        data = (data << 24) | (data >>> 8);
+    }
     //Updating the address bus back to PC fetch:
     this.IOCore.wait.NonSequentialBroadcast();
     return data | 0;

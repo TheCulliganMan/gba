@@ -2,7 +2,7 @@
 /*
  * This file is part of IodineGBA
  *
- * Copyright (C) 2012-2013 Grant Galitz
+ * Copyright (C) 2012-2015 Grant Galitz
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,7 +17,6 @@
  */
 function GameBoyAdvanceSaves(IOCore) {
     this.cartridge = IOCore.cartridge;
-    this.initialize();
 }
 GameBoyAdvanceSaves.prototype.initialize = function () {
     this.saveType = 0;
@@ -169,18 +168,6 @@ GameBoyAdvanceSaves.prototype.writeGPIO8 = function (address, data) {
         this.UNDETERMINED.writeGPIO8(address | 0, data | 0);
     }
 }
-GameBoyAdvanceSaves.prototype.writeEEPROM8 = function (address, data) {
-    address = address | 0;
-    data = data | 0;
-    if ((this.saveType | 0) == 3) {
-        //EEPROM:
-        this.EEPROMChip.write8(data | 0);
-    }
-    else {
-        //Unknown:
-        this.UNDETERMINED.writeEEPROM8(address | 0, data | 0);
-    }
-}
 GameBoyAdvanceSaves.prototype.writeGPIO16 = function (address, data) {
     address = address | 0;
     data = data | 0;
@@ -215,18 +202,6 @@ GameBoyAdvanceSaves.prototype.writeGPIO32 = function (address, data) {
     else {
         //Unknown:
         this.UNDETERMINED.writeGPIO32(address | 0, data | 0);
-    }
-}
-GameBoyAdvanceSaves.prototype.writeEEPROM32 = function (address, data) {
-    address = address | 0;
-    data = data | 0;
-    if ((this.saveType | 0) == 3) {
-        //EEPROM:
-        this.EEPROMChip.write32(data | 0);
-    }
-    else {
-        //Unknown:
-        this.UNDETERMINED.writeEEPROM32(address | 0, data | 0);
     }
 }
 GameBoyAdvanceSaves.prototype.writeSRAM = function (address, data) {

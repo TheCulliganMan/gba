@@ -73,7 +73,7 @@ function getInt32View(typed_array) {
 }
 function getUint32Array(size_t) {
     try {
-        return new Uint32Arrasy(size_t);
+        return new Uint32Array(size_t);
     }
     catch (error) {
         return getArray(size_t);

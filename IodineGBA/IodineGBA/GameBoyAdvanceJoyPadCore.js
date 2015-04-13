@@ -2,7 +2,7 @@
 /*
  * This file is part of IodineGBA
  *
- * Copyright (C) 2012-2014 Grant Galitz
+ * Copyright (C) 2012-2015 Grant Galitz
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,7 +17,6 @@
  */
 function GameBoyAdvanceJoyPad(IOCore) {
     this.IOCore = IOCore;
-    this.initialize();
 }
 GameBoyAdvanceJoyPad.prototype.initialize = function () {
     this.keyInput = 0x3FF;
@@ -114,25 +113,40 @@ GameBoyAdvanceJoyPad.prototype.checkForIRQ = function () {
         this.IOCore.irq.requestIRQ(0x1000);
     }
 }
-GameBoyAdvanceJoyPad.prototype.readKeyStatus0 = function () {
+GameBoyAdvanceJoyPad.prototype.readKeyStatus8_0 = function () {
     return this.keyInput & 0xFF;
 }
-GameBoyAdvanceJoyPad.prototype.readKeyStatus1 = function () {
-    return (this.keyInput >> 8) & 0x3;
+GameBoyAdvanceJoyPad.prototype.readKeyStatus8_1 = function () {
+    return (this.keyInput >> 8) | 0;
 }
-GameBoyAdvanceJoyPad.prototype.writeKeyControl0 = function (data) {
+GameBoyAdvanceJoyPad.prototype.readKeyStatus16 = function () {
+    return this.keyInput | 0;
+}
+GameBoyAdvanceJoyPad.prototype.writeKeyControl8_0 = function (data) {
     data = data | 0;
     this.keyInterrupt = this.keyInterrupt & 0xC300;
+    data = data & 0xFF;
     this.keyInterrupt = this.keyInterrupt | data;
 }
-GameBoyAdvanceJoyPad.prototype.readKeyControl0 = function () {
-    return this.keyInterrupt & 0xFF;
-}
-GameBoyAdvanceJoyPad.prototype.writeKeyControl1 = function (data) {
+GameBoyAdvanceJoyPad.prototype.writeKeyControl8_1 = function (data) {
     data = data | 0;
     this.keyInterrupt = this.keyInterrupt & 0xFF;
+    data = data & 0xC3;
     this.keyInterrupt = this.keyInterrupt | (data << 8);
 }
-GameBoyAdvanceJoyPad.prototype.readKeyControl1 = function () {
-    return (this.keyInterrupt >> 8) & 0xC3;
+GameBoyAdvanceJoyPad.prototype.writeKeyControl16 = function (data) {
+    data = data | 0;
+    this.keyInterrupt = data & 0xC3FF;
+}
+GameBoyAdvanceJoyPad.prototype.readKeyControl8_0 = function () {
+    return this.keyInterrupt & 0xFF;
+}
+GameBoyAdvanceJoyPad.prototype.readKeyControl8_1 = function () {
+    return (this.keyInterrupt >> 8) | 0;
+}
+GameBoyAdvanceJoyPad.prototype.readKeyControl16 = function () {
+    return this.keyInterrupt | 0;
+}
+GameBoyAdvanceJoyPad.prototype.readKeyStatusControl32 = function () {
+    return this.keyInput | (this.keyInterrupt << 16);
 }

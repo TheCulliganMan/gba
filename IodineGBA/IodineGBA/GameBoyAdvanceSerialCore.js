@@ -17,7 +17,6 @@
  */
 function GameBoyAdvanceSerial(IOCore) {
     this.IOCore = IOCore;
-    this.initialize();
 }
 GameBoyAdvanceSerial.prototype.initialize = function () {
     this.SIODATA_A = 0xFFFF;

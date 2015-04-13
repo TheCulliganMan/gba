@@ -18,6 +18,12 @@
 function GameBoyAdvanceGraphics(IOCore) {
     this.IOCore = IOCore;
     this.coreExposed = IOCore.coreExposed;
+}
+GameBoyAdvanceGraphics.prototype.initialize = function () {
+    this.dma = this.IOCore.dma;
+    this.dmaChannel3 = this.IOCore.dmaChannel3;
+    this.irq = this.IOCore.irq;
+    this.wait = this.IOCore.wait;
     this.initializeIO();
     this.initializeRenderer();
 }
@@ -151,10 +157,10 @@ GameBoyAdvanceGraphics.prototype.clockLCDNextLine = function () {
             case 160:
                 this.updateVBlankStart();                           //Update state for start of vblank.
             case 161:
-                this.IOCore.dma.gfxDisplaySyncRequest();            //Display Sync. DMA trigger.
+                this.dmaChannel3.gfxDisplaySyncRequest();           //Display Sync. DMA trigger.
                 break;
             case 162:
-                this.IOCore.dma.gfxDisplaySyncEnableCheck();        //Display Sync. DMA reset on start of line 162.
+                this.dmaChannel3.gfxDisplaySyncEnableCheck();       //Display Sync. DMA reset on start of line 162.
                 break;
             case 227:
                 this.inVBlank = false;                              //Un-mark VBlank on start of last vblank line.
@@ -164,7 +170,7 @@ GameBoyAdvanceGraphics.prototype.clockLCDNextLine = function () {
         }
     }
     else if ((this.currentScanLine | 0) > 1) {
-        this.IOCore.dma.gfxDisplaySyncRequest();                    //Display Sync. DMA trigger.
+        this.dmaChannel3.gfxDisplaySyncRequest();                   //Display Sync. DMA trigger.
     }
     this.checkVCounter();                                           //We're on a new scan line, so check the VCounter for match.
     this.isRenderingCheckPreprocess();                              //Update a check value.
@@ -175,10 +181,10 @@ GameBoyAdvanceGraphics.prototype.updateHBlank = function () {
     if (!this.inHBlank) {                                           //If we were last in HBlank, don't run this again.
         this.inHBlank = true;                                       //Mark HBlank.
         if (this.IRQHBlank) {
-            this.IOCore.irq.requestIRQ(0x2);                        //Check for IRQ.
+            this.irq.requestIRQ(0x2);                        //Check for IRQ.
         }
         if ((this.currentScanLine | 0) < 160) {
-            this.IOCore.dma.gfxHBlankRequest();                     //Check for HDMA Trigger.
+            this.dma.gfxHBlankRequest();                            //Check for HDMA Trigger.
         }
         this.isRenderingCheckPreprocess();                          //Update a check value.
     }
@@ -187,7 +193,7 @@ GameBoyAdvanceGraphics.prototype.checkVCounter = function () {
     if ((this.currentScanLine | 0) == (this.VCounter | 0)) {        //Check for VCounter match.
         this.VCounterMatch = true;
         if (this.IRQVCounter) {                                     //Check for VCounter IRQ.
-            this.IOCore.irq.requestIRQ(0x4);
+            this.irq.requestIRQ(0x4);
         }
     }
     else {
@@ -264,21 +270,23 @@ if (typeof Math.imul == "function") {
         }
         return nextEventTime | 0;
     }
-    GameBoyAdvanceGraphics.prototype.nextDisplaySyncEventTime = function () {
+    GameBoyAdvanceGraphics.prototype.nextDisplaySyncEventTime = function (delay) {
+        delay = delay | 0;
         var nextEventTime = 0;
-        if ((this.currentScanLine | 0) == 0) {
+        if ((this.currentScanLine | 0) >= 161 || (delay | 0) != 0) {
+            //Skip to line 2 metrics:
+            nextEventTime = (230 - (this.currentScanLine | 0)) | 0;
+            nextEventTime = Math.imul(nextEventTime | 0, 1232) | 0;
+            nextEventTime = ((nextEventTime | 0) - (this.LCDTicks | 0)) | 0;
+        }
+        else if ((this.currentScanLine | 0) == 0) {
             //Doesn't start until line 2:
             nextEventTime = (2464 - (this.LCDTicks | 0)) | 0;
         }
         else if ((this.currentScanLine | 0) < 161) {
             //Line 2 through line 161:
             nextEventTime = (1232 - (this.LCDTicks | 0)) | 0;
-        }
-        else {
-            //Skip to line 2 metrics:
-            nextEventTime = (230 - (this.currentScanLine | 0)) | 0;
-            nextEventTime = Math.imul(nextEventTime | 0, 1232) | 0;
-            nextEventTime = ((nextEventTime | 0) - (this.LCDTicks | 0)) | 0;
+            
         }
         return nextEventTime | 0;
     }
@@ -325,7 +333,7 @@ else {
 GameBoyAdvanceGraphics.prototype.updateVBlankStart = function () {
     this.inVBlank = true;                                //Mark VBlank.
     if (this.IRQVBlank) {                                //Check for VBlank IRQ.
-        this.IOCore.irq.requestIRQ(0x1);
+        this.irq.requestIRQ(0x1);
     }
     //Ensure JIT framing alignment:
     if ((this.totalLinesPassed | 0) < 160) {
@@ -334,7 +342,7 @@ GameBoyAdvanceGraphics.prototype.updateVBlankStart = function () {
         //Draw the frame:
         this.coreExposed.prepareFrame();
     }
-    this.IOCore.dma.gfxVBlankRequest();
+    this.dma.gfxVBlankRequest();
 }
 GameBoyAdvanceGraphics.prototype.graphicsJIT = function () {
     this.totalLinesPassed = 0;            //Mark frame for ensuring a JIT pass for the next framebuffer output.
@@ -404,7 +412,7 @@ GameBoyAdvanceGraphics.prototype.isRenderingCheckPreprocess = function () {
     var isInVisibleLines = (!this.forcedBlank && !this.inVBlank);
     var isRendering = (isInVisibleLines && !this.inHBlank) ? 2 : 1;
     var isOAMRendering = (isInVisibleLines && (!this.inHBlank || !this.HBlankIntervalFree)) ? 2 : 1;
-    this.IOCore.wait.updateRenderStatus(isRendering | 0, isOAMRendering | 0);
+    this.wait.updateRenderStatus(isRendering | 0, isOAMRendering | 0);
 }
 GameBoyAdvanceGraphics.prototype.compositorPreprocess = function () {
     this.compositor.preprocess((this.WINOutside & 0x20) == 0x20 || (this.display & 0xE0) == 0);

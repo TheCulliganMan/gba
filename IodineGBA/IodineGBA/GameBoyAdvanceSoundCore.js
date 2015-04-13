@@ -2,7 +2,7 @@
 /*
  * This file is part of IodineGBA
  *
- * Copyright (C) 2012-2014 Grant Galitz
+ * Copyright (C) 2012-2015 Grant Galitz
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,9 +19,10 @@ function GameBoyAdvanceSound(IOCore) {
     //Build references:
     this.IOCore = IOCore;
     this.coreExposed = this.IOCore.coreExposed;
-    this.initializePAPU();
 }
-GameBoyAdvanceSound.prototype.initializePAPU = function () {
+GameBoyAdvanceSound.prototype.initialize = function () {
+    this.dmaChannel1 = this.IOCore.dmaChannel1;
+    this.dmaChannel2 = this.IOCore.dmaChannel2;
     //Did the emulator core initialize us for output yet?
     this.preprocessInitialization(false);
     //Initialize start:
@@ -339,76 +340,88 @@ else {
 GameBoyAdvanceSound.prototype.writeWAVE8 = function (address, data) {
     address = address | 0;
     data = data | 0;
+    this.IOCore.updateTimerClocking();
     this.channel3.writeWAVE8(address | 0, data | 0);
 }
 GameBoyAdvanceSound.prototype.readWAVE8 = function (address) {
-    address | 0
+    address = address | 0;
+    this.IOCore.updateTimerClocking();
     return this.channel3.readWAVE8(address | 0) | 0;
 }
 GameBoyAdvanceSound.prototype.writeWAVE16 = function (address, data) {
     address = address | 0;
     data = data | 0;
-    this.channel3.writeWAVE16(address | 0, data | 0);
+    this.IOCore.updateTimerClocking();
+    this.channel3.writeWAVE16(address >> 1, data | 0);
 }
 GameBoyAdvanceSound.prototype.readWAVE16 = function (address) {
-    address | 0
-    return this.channel3.readWAVE16(address | 0) | 0;
+    address = address | 0;
+    this.IOCore.updateTimerClocking();
+    return this.channel3.readWAVE16(address >> 1) | 0;
 }
 GameBoyAdvanceSound.prototype.writeWAVE32 = function (address, data) {
     address = address | 0;
     data = data | 0;
-    this.channel3.writeWAVE32(address | 0, data | 0);
+    this.IOCore.updateTimerClocking();
+    this.channel3.writeWAVE32(address >> 2, data | 0);
 }
 GameBoyAdvanceSound.prototype.readWAVE32 = function (address) {
-    address | 0
-    return this.channel3.readWAVE32(address | 0) | 0;
+    address = address | 0;
+    this.IOCore.updateTimerClocking();
+    return this.channel3.readWAVE32(address >> 2) | 0;
 }
 GameBoyAdvanceSound.prototype.writeFIFOA8 = function (data) {
     data = data | 0;
+    this.IOCore.updateTimerClocking();
     this.FIFOABuffer.push8(data | 0);
     this.checkFIFOAPendingSignal();
 }
 GameBoyAdvanceSound.prototype.writeFIFOB8 = function (data) {
     data = data | 0;
+    this.IOCore.updateTimerClocking();
     this.FIFOBBuffer.push8(data | 0);
     this.checkFIFOBPendingSignal();
 }
 GameBoyAdvanceSound.prototype.writeFIFOA16 = function (data) {
     data = data | 0;
+    this.IOCore.updateTimerClocking();
     this.FIFOABuffer.push16(data | 0);
     this.checkFIFOAPendingSignal();
 }
 GameBoyAdvanceSound.prototype.writeFIFOB16 = function (data) {
     data = data | 0;
+    this.IOCore.updateTimerClocking();
     this.FIFOBBuffer.push16(data | 0);
     this.checkFIFOBPendingSignal();
 }
 GameBoyAdvanceSound.prototype.writeFIFOA32 = function (data) {
     data = data | 0;
+    this.IOCore.updateTimerClocking();
     this.FIFOABuffer.push32(data | 0);
     this.checkFIFOAPendingSignal();
 }
 GameBoyAdvanceSound.prototype.writeFIFOB32 = function (data) {
     data = data | 0;
+    this.IOCore.updateTimerClocking();
     this.FIFOBBuffer.push32(data | 0);
     this.checkFIFOBPendingSignal();
 }
 GameBoyAdvanceSound.prototype.checkFIFOAPendingSignal = function () {
     if (this.FIFOABuffer.requestingDMA()) {
-        this.IOCore.dma.soundFIFOARequest();
+        this.dmaChannel1.soundFIFOARequest();
     }
 }
 GameBoyAdvanceSound.prototype.checkFIFOBPendingSignal = function () {
     if (this.FIFOBBuffer.requestingDMA()) {
-        this.IOCore.dma.soundFIFOBRequest();
+        this.dmaChannel2.soundFIFOBRequest();
     }
 }
 GameBoyAdvanceSound.prototype.AGBDirectSoundAFIFOClear = function () {
-    this.FIFOABuffer.count = 0;
+    this.FIFOABuffer.clear();
     this.AGBDirectSoundATimerIncrement();
 }
 GameBoyAdvanceSound.prototype.AGBDirectSoundBFIFOClear = function () {
-    this.FIFOBBuffer.count = 0;
+    this.FIFOBBuffer.clear();
     this.AGBDirectSoundBTimerIncrement();
 }
 GameBoyAdvanceSound.prototype.AGBDirectSoundTimer0ClockTick = function () {
