@@ -1152,9 +1152,11 @@ else {
         this.writePalette16Color(address, palette);
     }
     GameBoyAdvanceGraphics.prototype.readPalette16 = function (address) {
+        address &= 0x3FE;
         return this.paletteRAM[address] | (this.paletteRAM[address | 1] << 8);
     }
     GameBoyAdvanceGraphics.prototype.readPalette32 = function (address) {
+        address &= 0x3FC;
         return this.paletteRAM[address] | (this.paletteRAM[address | 1] << 8) | (this.paletteRAM[address | 2] << 16)  | (this.paletteRAM[address | 3] << 24);
     }
 }

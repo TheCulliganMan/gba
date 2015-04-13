@@ -661,9 +661,11 @@ else {
         this.OAMRAM[address | 3] = data >>> 24;
     }
     GameBoyAdvanceOBJRenderer.prototype.readOAM16 = function (address) {
+        address &= 0x3FE;
         return this.OAMRAM[address] | (this.OAMRAM[address | 1] << 8);
     }
     GameBoyAdvanceOBJRenderer.prototype.readOAM32 = function (address) {
+        address &= 0x3FC;
         return this.OAMRAM[address] | (this.OAMRAM[address | 1] << 8) | (this.OAMRAM[address | 2] << 16)  | (this.OAMRAM[address | 3] << 24);
     }
 }
