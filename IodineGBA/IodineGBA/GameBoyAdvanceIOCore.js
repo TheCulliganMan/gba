@@ -204,6 +204,14 @@ GameBoyAdvanceIO.prototype.updateCore = function (clocks) {
         this.updateCoreSpill();
     }
 }
+GameBoyAdvanceIO.prototype.updateCoreNegative = function (clocks) {
+    clocks = clocks | 0;
+    //This is used during normal/dma modes of operation:
+    this.accumulatedClocks = ((this.accumulatedClocks | 0) - (clocks | 0)) | 0;
+    if ((this.accumulatedClocks | 0) >= (this.nextEventClocks | 0)) {
+        this.updateCoreSpill();
+    }
+}
 GameBoyAdvanceIO.prototype.updateCoreSingle = function () {
     //This is used during normal/dma modes of operation:
     this.accumulatedClocks = ((this.accumulatedClocks | 0) + 1) | 0;
