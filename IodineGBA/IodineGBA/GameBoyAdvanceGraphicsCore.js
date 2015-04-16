@@ -16,10 +16,11 @@
  *
  */
 function GameBoyAdvanceGraphics(IOCore) {
+    //Build references:
     this.IOCore = IOCore;
-    this.coreExposed = IOCore.coreExposed;
 }
 GameBoyAdvanceGraphics.prototype.initialize = function () {
+    this.coreExposed = this.IOCore.coreExposed;
     this.dma = this.IOCore.dma;
     this.dmaChannel3 = this.IOCore.dmaChannel3;
     this.irq = this.IOCore.irq;

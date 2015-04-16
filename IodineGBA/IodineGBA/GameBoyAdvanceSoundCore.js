@@ -18,9 +18,9 @@
 function GameBoyAdvanceSound(IOCore) {
     //Build references:
     this.IOCore = IOCore;
-    this.coreExposed = this.IOCore.coreExposed;
 }
 GameBoyAdvanceSound.prototype.initialize = function () {
+    this.coreExposed = this.IOCore.coreExposed;
     this.dmaChannel1 = this.IOCore.dmaChannel1;
     this.dmaChannel2 = this.IOCore.dmaChannel2;
     //Did the emulator core initialize us for output yet?
@@ -67,8 +67,6 @@ GameBoyAdvanceSound.prototype.initializeAudioStartState = function () {
     this.CGBOutputRatio = 2;
     this.FIFOABuffer = new GameBoyAdvanceFIFO();
     this.FIFOBBuffer = new GameBoyAdvanceFIFO();
-    this.AGBDirectSoundAFIFOClear();
-    this.AGBDirectSoundBFIFOClear();
     this.audioDisabled();       //Clear legacy PAPU registers:
 }
 GameBoyAdvanceSound.prototype.audioDisabled = function () {
@@ -76,6 +74,9 @@ GameBoyAdvanceSound.prototype.audioDisabled = function () {
     this.channel2.disabled();
     this.channel3.disabled();
     this.channel4.disabled();
+    //Clear FIFO:
+    this.AGBDirectSoundAFIFOClear();
+    this.AGBDirectSoundBFIFOClear();
     //Clear NR50:
     this.nr50 = 0;
     this.VinLeftChannelMasterVolume = 1;
@@ -426,44 +427,58 @@ GameBoyAdvanceSound.prototype.AGBDirectSoundBFIFOClear = function () {
 }
 GameBoyAdvanceSound.prototype.AGBDirectSoundTimer0ClockTick = function () {
     this.audioJIT();
-    if ((this.AGBDirectSoundATimer | 0) == 0) {
-        this.AGBDirectSoundATimerIncrement();
-    }
-    if ((this.AGBDirectSoundBTimer | 0) == 0) {
-        this.AGBDirectSoundBTimerIncrement();
+    if (this.soundMasterEnabled) {
+        if ((this.AGBDirectSoundATimer | 0) == 0) {
+            this.AGBDirectSoundATimerIncrement();
+        }
+        if ((this.AGBDirectSoundBTimer | 0) == 0) {
+            this.AGBDirectSoundBTimerIncrement();
+        }
     }
 }
 GameBoyAdvanceSound.prototype.AGBDirectSoundTimer1ClockTick = function () {
     this.audioJIT();
-    if ((this.AGBDirectSoundATimer | 0) == 1) {
-        this.AGBDirectSoundATimerIncrement();
-    }
-    if ((this.AGBDirectSoundBTimer | 0) == 1) {
-        this.AGBDirectSoundBTimerIncrement();
+    if (this.soundMasterEnabled) {
+        if ((this.AGBDirectSoundATimer | 0) == 1) {
+            this.AGBDirectSoundATimerIncrement();
+        }
+        if ((this.AGBDirectSoundBTimer | 0) == 1) {
+            this.AGBDirectSoundBTimerIncrement();
+        }
     }
 }
 GameBoyAdvanceSound.prototype.nextFIFOAEventTime = function () {
-    var nextEventTime = 0;
-    if (!this.FIFOABuffer.requestingDMA()) {
-        var samplesUntilDMA = this.FIFOABuffer.samplesUntilDMATrigger() | 0;
-        if ((this.AGBDirectSoundATimer | 0) == 0) {
-            nextEventTime = this.IOCore.timer.nextTimer0Overflow(samplesUntilDMA | 0);
+    var nextEventTime = -1;
+    if (this.soundMasterEnabled) {
+        if (!this.FIFOABuffer.requestingDMA()) {
+            var samplesUntilDMA = this.FIFOABuffer.samplesUntilDMATrigger() | 0;
+            if ((this.AGBDirectSoundATimer | 0) == 0) {
+                nextEventTime = this.IOCore.timer.nextTimer0Overflow(samplesUntilDMA | 0);
+            }
+            else {
+                nextEventTime = this.IOCore.timer.nextTimer1Overflow(samplesUntilDMA | 0);
+            }
         }
         else {
-            nextEventTime = this.IOCore.timer.nextTimer1Overflow(samplesUntilDMA | 0);
+            nextEventTime = 0;
         }
     }
     return Math.max(Math.min(nextEventTime, 0x7FFFFFFF), -1) | 0;
 }
 GameBoyAdvanceSound.prototype.nextFIFOBEventTime = function () {
-    var nextEventTime = 0;
-    if (!this.FIFOBBuffer.requestingDMA()) {
-        var samplesUntilDMA = this.FIFOBBuffer.samplesUntilDMATrigger() | 0;
-        if ((this.AGBDirectSoundBTimer | 0) == 0) {
-            nextEventTime = this.IOCore.timer.nextTimer0Overflow(samplesUntilDMA | 0);
+    var nextEventTime = -1;
+    if (this.soundMasterEnabled) {
+        if (!this.FIFOBBuffer.requestingDMA()) {
+            var samplesUntilDMA = this.FIFOBBuffer.samplesUntilDMATrigger() | 0;
+            if ((this.AGBDirectSoundBTimer | 0) == 0) {
+                nextEventTime = this.IOCore.timer.nextTimer0Overflow(samplesUntilDMA | 0);
+            }
+            else {
+                nextEventTime = this.IOCore.timer.nextTimer1Overflow(samplesUntilDMA | 0);
+            }
         }
         else {
-            nextEventTime = this.IOCore.timer.nextTimer1Overflow(samplesUntilDMA | 0);
+            nextEventTime = 0;
         }
     }
     return Math.max(Math.min(nextEventTime, 0x7FFFFFFF), -1) | 0;

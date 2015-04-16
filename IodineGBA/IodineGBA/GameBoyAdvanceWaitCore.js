@@ -16,10 +16,12 @@
  *
  */
 function GameBoyAdvanceWait(IOCore) {
+    //Build references:
     this.IOCore = IOCore;
-    this.memory = this.IOCore.memory;
 }
 GameBoyAdvanceWait.prototype.initialize = function () {
+    this.memory = this.IOCore.memory;
+    this.cpu = this.IOCore.cpu;
     this.WRAMConfiguration = 0xD000020;     //WRAM configuration control register current data.
     this.WRAMWaitState = 3;                 //External WRAM wait state.
     this.SRAMWaitState = 5;                 //SRAM wait state.
@@ -28,12 +30,12 @@ GameBoyAdvanceWait.prototype.initialize = function () {
     this.POSTBOOT = 0;                      //POSTBOOT control register data.
     this.isRendering = 1;                   //Are we doing memory during screen draw?
     this.isOAMRendering = 1;                //Are we doing memory during OAM draw?
-    this.nonSequential = 0x100;             //Non-sequential access bit-flag.
+    this.nonSequential = 0x10;              //Non-sequential access bit-flag.
     this.buffer = 0;                        //Tracking of the size of the prebuffer cache.
     this.clocks = 0;                        //Tracking clocks for prebuffer cache.
     //Create the wait state address translation cache:
-    this.waitStateClocks16 = getUint8Array(0x200);
-    this.waitStateClocks32 = getUint8Array(0x200);
+    this.waitStateClocks16 = getUint8Array(0x20);
+    this.waitStateClocks32 = getUint8Array(0x20);
     //Wait State 0:
     this.setWaitState(0, 0);
     //Wait State 1:
@@ -81,12 +83,12 @@ GameBoyAdvanceWait.prototype.setWaitState = function (region, data) {
     region = region << 1;
     //Computing First Access:
     //8-16 bit access:
-    this.waitStateClocks16[0x108 | region] = firstAccess | 0;
-    this.waitStateClocks16[0x109 | region] = firstAccess | 0;
+    this.waitStateClocks16[0x18 | region] = firstAccess | 0;
+    this.waitStateClocks16[0x19 | region] = firstAccess | 0;
     //32 bit access:
     var accessTime = ((firstAccess | 0) + (secondAccess | 0)) | 0;
-    this.waitStateClocks32[0x108 | region] = accessTime | 0;
-    this.waitStateClocks32[0x109 | region] = accessTime | 0;
+    this.waitStateClocks32[0x18 | region] = accessTime | 0;
+    this.waitStateClocks32[0x19 | region] = accessTime | 0;
     //Computing Second Access:
     //8-16 bit access:
     this.waitStateClocks16[0x8 | region] = secondAccess | 0;
@@ -235,14 +237,14 @@ GameBoyAdvanceWait.prototype.CPUInternalSingleCycleNoPrefetch = function () {
 }
 GameBoyAdvanceWait.prototype.checkPrebufferBug = function () {
     //Issue a non-sequential cycle for the next read if we did an I-cycle:
-    var address = this.IOCore.cpu.registers[15] | 0;
+    var address = this.cpu.registers[15] | 0;
     if ((address | 0) >= 0x8000000 && (address | 0) < 0xE000000) {
         this.NonSequentialBroadcast();
     }
 }
 GameBoyAdvanceWait.prototype.NonSequentialBroadcast = function () {
     //Flag as N cycle:
-    this.nonSequential = 0x100;
+    this.nonSequential = 0x10;
 }
 GameBoyAdvanceWait.prototype.NonSequentialBroadcastClear = function () {
     //PC branched:
@@ -258,7 +260,7 @@ GameBoyAdvanceWait.prototype.check128kAlignmentBug = function (address) {
 GameBoyAdvanceWait.prototype.multiClock = function (clocks) {
     clocks = clocks | 0;
     this.IOCore.updateCore(clocks | 0);
-    var address = this.IOCore.cpu.registers[15] | 0;
+    var address = this.cpu.registers[15] | 0;
     if ((address | 0) >= 0x8000000 && (address | 0) < 0xE000000) {
         if ((this.clocks | 0) < 0xFF) {
             this.clocks = ((this.clocks | 0) + (clocks | 0)) | 0;
@@ -270,7 +272,7 @@ GameBoyAdvanceWait.prototype.multiClock = function (clocks) {
 }
 GameBoyAdvanceWait.prototype.singleClock = function () {
     this.IOCore.updateCoreSingle();
-    var address = this.IOCore.cpu.registers[15] | 0;
+    var address = this.cpu.registers[15] | 0;
     if ((address | 0) >= 0x8000000 && (address | 0) < 0xE000000) {
         if ((this.clocks | 0) < 0xFF) {
             this.clocks = ((this.clocks | 0) + 1) | 0;
@@ -295,48 +297,70 @@ GameBoyAdvanceWait.prototype.resetPrebuffer = function () {
     this.buffer = 0;
 }
 GameBoyAdvanceWait.prototype.drainOverdueClocks = function () {
+    if ((this.clocks | 0) > 0 && (this.buffer | 0) < 8) {
+        var address = this.cpu.registers[15] | 0;
+        //Convert built up clocks to 16 bit word buffer units:
+        do {
+            this.clocks = ((this.clocks | 0) - (this.waitStateClocks16[address | 0] | 0)) | 0;
+            this.buffer = ((this.buffer | 0) + 1) | 0;
+        } while ((this.clocks | 0) > 0 && (this.buffer | 0) < 8);
+        //If we're deficient in clocks, fit them in before the access:
+        if ((this.clocks | 0) < 0) {
+            this.IOCore.updateCoreNegative(this.clocks | 0);
+            this.clocks = 0;
+        }
+    }
+}
+GameBoyAdvanceWait.prototype.computeClocks = function (address) {
+    address = address | 0;
+    //Convert built up clocks to 16 bit word buffer units:
+    while ((this.buffer | 0) < 8 && (this.clocks | 0) >= (this.waitStateClocks16[address | 0] | 0)) {
+        this.clocks = ((this.clocks | 0) - (this.waitStateClocks16[address | 0] | 0)) | 0;
+        this.buffer = ((this.buffer | 0) + 1) | 0;
+    }
+}
+GameBoyAdvanceWait.prototype.drainOverdueClocksCPU = function () {
     if ((this.clocks | 0) < 0) {
         //Compute "overdue" clocks:
         this.IOCore.updateCoreNegative(this.clocks | 0);
         this.clocks = 0;
     }
-}
-GameBoyAdvanceWait.prototype.computeClocks = function (address) {
-    address = address | 0;
-    //Compute the clock time into discrete buffer amounts:
-    while ((this.clocks | 0) >= 0) {
-        if ((this.buffer | 0) == 8) {
-            this.clocks = 0;
-            break;
-        }
-        else {
-            this.clocks = ((this.clocks | 0) - (this.waitStateClocks16[address | this.nonSequential] | 0)) | 0;
-            this.buffer = ((this.buffer | 0) + 1) | 0;
-            this.nonSequential = 0;
-        }
+    else {
+        //Buffer satiated, clock 1:
+        this.IOCore.updateCoreSingle();
     }
+}
+GameBoyAdvanceWait.prototype.doGamePakFetch16 = function (address) {
+    address = address | 0;
+    //Fetch 16 bit word into buffer:
+    this.clocks = ((this.clocks | 0) - (this.waitStateClocks16[address | this.nonSequential] | 0)) | 0;
+    this.nonSequential = 0;
+}
+GameBoyAdvanceWait.prototype.doGamePakFetch32 = function (address) {
+    address = address | 0;
+    //Fetch 16 bit word into buffer:
+    this.clocks = ((this.clocks | 0) - (this.waitStateClocks32[address | this.nonSequential] | 0)) | 0;
+    this.nonSequential = 0;
 }
 GameBoyAdvanceWait.prototype.getROMRead16Prefetch = function (address) {
     //Caching enabled:
     address = address | 0;
-    //Instruction fetch is 1 clock wide minimum:
-    var clocks = 1;
-    this.addPrebufferSingleClock();
-    //Compute the clock time for buffering:
+    //Resolve clocks to buffer units:
     this.computeClocks(address | 0);
-    //Build up minimum request:
-    if ((this.buffer | 0) < 1) {
-        //Invert negative clocks:
-        this.clocks = (0 - (this.clocks | 0)) | 0;
-        //Add to state clocking counter:
-        clocks = ((clocks | 0) + (this.clocks | 0)) | 0;
-        //Compute the clock time for buffering:
-        this.computeClocks(address | 0);
+    //Need 16 bits minimum buffered:
+    switch (this.buffer | 0) {
+        case 0:
+            //Fetch 16 bit word into buffer:
+            this.doGamePakFetch16(address | 0);
+            break;
+        default:
+            //Instruction fetch is 1 clock wide minimum:
+            this.addPrebufferSingleClock();
+            //Decrement the buffer:
+            this.decrementBufferSingle();
     }
-    //Decrement the buffer:
-    this.decrementBufferSingle();
     //Clock the state:
-    this.IOCore.updateCore(clocks | 0);
+    this.drainOverdueClocksCPU();
 }
 GameBoyAdvanceWait.prototype.getROMRead16NoPrefetch = function (address) {
     //Caching disabled:
@@ -347,24 +371,27 @@ GameBoyAdvanceWait.prototype.getROMRead16NoPrefetch = function (address) {
 GameBoyAdvanceWait.prototype.getROMRead32Prefetch = function (address) {
     //Caching enabled:
     address = address | 0;
-    //Instruction fetch is 1 clock wide minimum:
-    var clocks = 1;
-    this.addPrebufferSingleClock();
-    //Compute the clock time for buffering:
+    //Resolve clocks to buffer units:
     this.computeClocks(address | 0);
-    //Build up minimum request:
-    while ((this.buffer | 0) < 2) {
-        //Invert negative clocks:
-        this.clocks = (0 - (this.clocks | 0)) | 0;
-        //Add to state clocking counter:
-        clocks = ((clocks | 0) + (this.clocks | 0)) | 0;
-        //Compute the clock time for buffering:
-        this.computeClocks(address | 0);
+    //Need 32 bits minimum buffered:
+    switch (this.buffer | 0) {
+        case 0:
+            //Fetch two 16 bit words into buffer:
+            this.doGamePakFetch32(address | 0);
+            break;
+        case 1:
+            //Fetch a 16 bit word into buffer:
+            this.doGamePakFetch16(address | 0);
+            this.buffer = 0;
+            break;
+        default:
+            //Instruction fetch is 1 clock wide minimum:
+            this.addPrebufferSingleClock();
+            //Decrement the buffer:
+            this.decrementBufferDouble();
     }
-    //Decrement the buffer:
-    this.decrementBufferDouble();
     //Clock the state:
-    this.IOCore.updateCore(clocks | 0);
+    this.drainOverdueClocksCPU();
 }
 GameBoyAdvanceWait.prototype.getROMRead32NoPrefetch = function (address) {
     //Caching disabled:
@@ -393,7 +420,6 @@ GameBoyAdvanceWait.prototype.ROMAccess = function (address) {
 }
 GameBoyAdvanceWait.prototype.ROMAccess16CPU = function (address) {
     address = address | 0;
-    this.drainOverdueClocks();
     this.check128kAlignmentBug(address | 0);
     this.getROMRead16(address >> 24);
 }
@@ -406,7 +432,6 @@ GameBoyAdvanceWait.prototype.ROMAccess32 = function (address) {
 }
 GameBoyAdvanceWait.prototype.ROMAccess32CPU = function (address) {
     address = address | 0;
-    this.drainOverdueClocks();
     this.check128kAlignmentBug(address | 0);
     this.getROMRead32(address >> 24);
 }

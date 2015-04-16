@@ -17,10 +17,10 @@
  */
 function GameBoyAdvanceCPU(IOCore) {
     this.IOCore = IOCore;
-    this.memory = this.IOCore.memory;
-    this.wait = this.IOCore.wait;
 }
 GameBoyAdvanceCPU.prototype.initialize = function () {
+    this.memory = this.IOCore.memory;
+    this.wait = this.IOCore.wait;
     this.mul64ResultHigh = 0;    //Scratch MUL64.
     this.mul64ResultLow = 0;    //Scratch MUL64.
     this.initializeRegisters();
