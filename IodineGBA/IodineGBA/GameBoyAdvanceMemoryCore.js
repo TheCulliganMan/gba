@@ -53,6 +53,7 @@ GameBoyAdvanceMemory.prototype.initialize = function () {
     this.memoryWriteDMA32 = this.memoryWriteDMA32Generated[1];
     this.memoryWriteDMAFull32 = this.memoryWriteDMA32FullGenerated[1];
     //Initialize the various handler objects:
+    this.dma = this.IOCore.dma;
     this.dmaChannel0 = this.IOCore.dmaChannel0;
     this.dmaChannel1 = this.IOCore.dmaChannel1;
     this.dmaChannel2 = this.IOCore.dmaChannel2;
