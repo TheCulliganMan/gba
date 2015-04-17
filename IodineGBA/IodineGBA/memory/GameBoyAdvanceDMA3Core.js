@@ -394,7 +394,7 @@ GameBoyAdvanceDMA3.prototype.incrementDMAAddresses = function (source, destinati
     }
 }
 GameBoyAdvanceDMA3.prototype.nextEventTime = function () {
-    var clocks = -1;
+    var clocks = 0x7FFFFFFF;
     switch (this.enabled | 0) {
             //V_BLANK
         case 0x2:
@@ -411,7 +411,7 @@ GameBoyAdvanceDMA3.prototype.nextEventTime = function () {
     return clocks | 0;
 }
 GameBoyAdvanceDMA3.prototype.nextIRQEventTime = function () {
-    var clocks = -1;
+    var clocks = 0x7FFFFFFF;
     if ((this.irqFlagging | 0) == 0x40) {
         clocks = this.nextEventTime() | 0;
     }

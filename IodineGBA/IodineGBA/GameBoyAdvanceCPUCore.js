@@ -2,7 +2,7 @@
 /*
  * This file is part of IodineGBA
  *
- * Copyright (C) 2012-2014 Grant Galitz
+ * Copyright (C) 2012-2015 Grant Galitz
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -63,7 +63,7 @@ GameBoyAdvanceCPU.prototype.initializeRegisters = function () {
     this.SPSR[2] = 0xD3; //Supervisor
     this.SPSR[3] = 0xD3; //Abort
     this.SPSR[4] = 0xD3; //Undefined
-    this.triggeredIRQ = false;        //Pending IRQ found.
+    this.triggeredIRQ = 0;        //Pending IRQ found.
     //Pre-initialize stack pointers if no BIOS loaded:
     if (!this.IOCore.BIOSFound || this.IOCore.settings.SKIPBoot) {
         this.HLEReset();
@@ -102,11 +102,11 @@ GameBoyAdvanceCPU.prototype.branch = function (branchTo) {
     }*/
 }
 GameBoyAdvanceCPU.prototype.triggerIRQ = function (didFire) {
-    this.triggeredIRQ = didFire;
+    this.triggeredIRQ = didFire | 0;
     this.assertIRQ();
 }
 GameBoyAdvanceCPU.prototype.assertIRQ = function () {
-    if (this.triggeredIRQ && (this.modeFlags & 0x80) == 0) {
+    if ((this.triggeredIRQ | 0) != 0 && (this.modeFlags & 0x80) == 0) {
         this.IOCore.flagIRQ();
     }
 }

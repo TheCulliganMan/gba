@@ -202,7 +202,7 @@ GameBoyAdvanceGraphics.prototype.checkVCounter = function () {
     }
 }
 GameBoyAdvanceGraphics.prototype.nextVBlankIRQEventTime = function () {
-    var nextEventTime = -1;
+    var nextEventTime = 0x7FFFFFFF;
     if (this.IRQVBlank) {
         //Only give a time if we're allowed to irq:
         nextEventTime = this.nextVBlankEventTime() | 0;
@@ -217,7 +217,7 @@ GameBoyAdvanceGraphics.prototype.nextHBlankEventTime = function () {
     return time | 0;
 }
 GameBoyAdvanceGraphics.prototype.nextHBlankIRQEventTime = function () {
-    var nextEventTime = -1;
+    var nextEventTime = 0x7FFFFFFF;
     if (this.IRQHBlank) {
         //Only give a time if we're allowed to irq:
         nextEventTime = this.nextHBlankEventTime() | 0;
@@ -225,7 +225,7 @@ GameBoyAdvanceGraphics.prototype.nextHBlankIRQEventTime = function () {
     return nextEventTime | 0;
 }
 GameBoyAdvanceGraphics.prototype.nextVCounterIRQEventTime = function () {
-    var nextEventTime = -1;
+    var nextEventTime = 0x7FFFFFFF;
     if (this.IRQVCounter) {
         //Only give a time if we're allowed to irq:
         nextEventTime = this.nextVCounterEventTime() | 0;
@@ -244,7 +244,7 @@ if (typeof Math.imul == "function") {
         return nextEventTime | 0;
     }
     GameBoyAdvanceGraphics.prototype.nextHBlankDMAEventTime = function () {
-        var nextEventTime = -1
+        var nextEventTime = 0x7FFFFFFF;
         if ((this.currentScanLine | 0) < 159 || (!this.inHBlank && (this.currentScanLine | 0) == 159)) {
             //Go to next HBlank time inside screen draw:
             nextEventTime = this.nextHBlankEventTime() | 0;
@@ -259,7 +259,7 @@ if (typeof Math.imul == "function") {
         return nextEventTime | 0;
     }
     GameBoyAdvanceGraphics.prototype.nextVCounterEventTime = function () {
-        var nextEventTime = -1;
+        var nextEventTime = 0x7FFFFFFF;
         if ((this.VCounter | 0) <= 227) {
             //Only match lines within screen or vblank:
             nextEventTime = ((this.VCounter | 0) - (this.currentScanLine | 0)) | 0;
@@ -313,7 +313,7 @@ else {
             return (((227 + this.VCounter - this.currentScanLine) % 228) * 1232) + 1232 - this.LCDTicks;
         }
         else {
-            return -1;
+            return 0x7FFFFFFF;
         }
     }
     GameBoyAdvanceGraphics.prototype.nextDisplaySyncEventTime = function () {

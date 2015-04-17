@@ -448,40 +448,40 @@ GameBoyAdvanceSound.prototype.AGBDirectSoundTimer1ClockTick = function () {
     }
 }
 GameBoyAdvanceSound.prototype.nextFIFOAEventTime = function () {
-    var nextEventTime = -1;
+    var nextEventTime = 0x7FFFFFFF;
     if (this.soundMasterEnabled) {
         if (!this.FIFOABuffer.requestingDMA()) {
             var samplesUntilDMA = this.FIFOABuffer.samplesUntilDMATrigger() | 0;
             if ((this.AGBDirectSoundATimer | 0) == 0) {
-                nextEventTime = this.IOCore.timer.nextTimer0Overflow(samplesUntilDMA | 0);
+                nextEventTime = this.IOCore.timer.nextTimer0Overflow(samplesUntilDMA | 0) | 0;
             }
             else {
-                nextEventTime = this.IOCore.timer.nextTimer1Overflow(samplesUntilDMA | 0);
+                nextEventTime = this.IOCore.timer.nextTimer1Overflow(samplesUntilDMA | 0) | 0;
             }
         }
         else {
             nextEventTime = 0;
         }
     }
-    return Math.max(Math.min(nextEventTime, 0x7FFFFFFF), -1) | 0;
+    return nextEventTime | 0;
 }
 GameBoyAdvanceSound.prototype.nextFIFOBEventTime = function () {
-    var nextEventTime = -1;
+    var nextEventTime = 0x7FFFFFFF;
     if (this.soundMasterEnabled) {
         if (!this.FIFOBBuffer.requestingDMA()) {
             var samplesUntilDMA = this.FIFOBBuffer.samplesUntilDMATrigger() | 0;
             if ((this.AGBDirectSoundBTimer | 0) == 0) {
-                nextEventTime = this.IOCore.timer.nextTimer0Overflow(samplesUntilDMA | 0);
+                nextEventTime = this.IOCore.timer.nextTimer0Overflow(samplesUntilDMA | 0) | 0;
             }
             else {
-                nextEventTime = this.IOCore.timer.nextTimer1Overflow(samplesUntilDMA | 0);
+                nextEventTime = this.IOCore.timer.nextTimer1Overflow(samplesUntilDMA | 0) | 0;
             }
         }
         else {
             nextEventTime = 0;
         }
     }
-    return Math.max(Math.min(nextEventTime, 0x7FFFFFFF), -1) | 0;
+    return nextEventTime | 0;
 }
 GameBoyAdvanceSound.prototype.AGBDirectSoundATimerIncrement = function () {
     this.AGBDirectSoundA = this.FIFOABuffer.shift() | 0;

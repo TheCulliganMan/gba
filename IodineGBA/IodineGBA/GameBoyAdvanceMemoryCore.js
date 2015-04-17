@@ -1224,9 +1224,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
         //4000207h - WAITCNT - Waitstate Control (R/W)
         //4000208h - IME - Interrupt Master Enable Register (R/W)
         case 0x4000208:
-            this.IOCore.updateCoreClocking();
-            this.irq.writeIME(data & 0xFF);
-            this.IOCore.updateCoreEventTime();
+            this.irq.writeIME(data | 0);
             break;
         //4000209h through 40002FFh - NOT USED - GLITCHED
         //4000300h - POSTFLG - BYTE - Undocumented - Post Boot / Debug Control (R/W)
@@ -1888,9 +1886,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
         //4000206h - WAITCNT - Waitstate Control (R/W)
         //4000208h - IME - Interrupt Master Enable Register (R/W)
         case 0x4000208:
-            this.IOCore.updateCoreClocking();
-            this.irq.writeIME(data & 0xFF);
-            this.IOCore.updateCoreEventTime();
+            this.irq.writeIME(data | 0);
             break;
         //4000209h through 40002FFh - NOT USED - GLITCHED
         //4000300h - POSTFLG - BYTE - Undocumented - Post Boot / Debug Control (R/W)
@@ -2405,9 +2401,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
             break;
         //4000208h - IME - Interrupt Master Enable Register (R/W)
         case 0x4000208:
-            this.IOCore.updateCoreClocking();
-            this.irq.writeIME(data & 0xFF);
-            this.IOCore.updateCoreEventTime();
+            this.irq.writeIME(data | 0);
             break;
         //4000209h through 40002FFh - NOT USED - GLITCHED
         //4000300h - POSTFLG - BYTE - Undocumented - Post Boot / Debug Control (R/W)

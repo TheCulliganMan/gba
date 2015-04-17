@@ -100,33 +100,6 @@ GameBoyAdvanceDMA.prototype.updateFetch = function (data) {
     this.fetch = data | 0;
 }
 GameBoyAdvanceDMA.prototype.nextEventTime = function () {
-    var clocks = this.dmaChannel0.nextEventTime() | 0;
-    var workbench = this.dmaChannel1.nextEventTime() | 0;
-    if ((clocks | 0) >= 0) {
-        if ((workbench | 0) >= 0) {
-            clocks = Math.min(clocks | 0, workbench | 0) | 0;
-        }
-    }
-    else {
-        clocks = workbench | 0;
-    }
-    workbench = this.dmaChannel2.nextEventTime() | 0;
-    if ((clocks | 0) >= 0) {
-        if ((workbench | 0) >= 0) {
-            clocks = Math.min(clocks | 0, workbench | 0) | 0;
-        }
-    }
-    else {
-        clocks = workbench | 0;
-    }
-    workbench = this.dmaChannel3.nextEventTime() | 0;
-    if ((clocks | 0) >= 0) {
-        if ((workbench | 0) >= 0) {
-            clocks = Math.min(clocks | 0, workbench | 0) | 0;
-        }
-    }
-    else {
-        clocks = workbench | 0;
-    }
+    var clocks = Math.min(this.dmaChannel0.nextEventTime() | 0, this.dmaChannel1.nextEventTime() | 0, this.dmaChannel2.nextEventTime() | 0, this.dmaChannel3.nextEventTime() | 0) | 0;
     return clocks | 0;
 }

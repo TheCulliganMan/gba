@@ -337,17 +337,7 @@ GameBoyAdvanceIO.prototype.solveClosestTime = function (clocks1, clocks2) {
     clocks2 = clocks2 | 0;
     //Find the clocks closest to the next event:
     var clocks = this.getRemainingCycles() | 0;
-    if ((clocks1 | 0) >= 0) {
-        if ((clocks2 | 0) >= 0) {
-            clocks = Math.min(clocks | 0, clocks1 | 0, clocks2 | 0) | 0;
-        }
-        else {
-            clocks = Math.min(clocks | 0, clocks1 | 0) | 0;
-        }
-    }
-    else if (clocks2 >= 0) {
-        clocks = Math.min(clocks | 0, clocks2 | 0) | 0;
-    }
+    clocks = Math.min(clocks | 0, clocks1 | 0, clocks2 | 0);
     return clocks | 0;
 }
 GameBoyAdvanceIO.prototype.flagBubble = function () {

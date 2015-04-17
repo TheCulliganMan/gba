@@ -281,5 +281,5 @@ GameBoyAdvanceCartridge.prototype.writeROM32 = function (address, data) {
 }
 GameBoyAdvanceCartridge.prototype.nextIRQEventTime = function () {
     //Nothing yet implement that would fire an IRQ:
-    return -1;
+    return 0x7FFFFFFF;
 }

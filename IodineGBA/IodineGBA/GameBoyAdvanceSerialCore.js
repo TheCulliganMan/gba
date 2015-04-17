@@ -420,25 +420,25 @@ GameBoyAdvanceSerial.prototype.readJOYBUS_STAT = function () {
                     return ((((this.SIOCNT_MODE == 1) ? 31 : 7) - this.serialBitsShifted) * this.SIOShiftClockDivider) + (this.SIOShiftClockDivider - this.shiftClocks);
                 }
                 else {
-                    return -1;
+                    return 0x7FFFFFFF;
                 }
             case 2:
                 if (this.SIOTransferStarted && this.SIOMULT_PLAYER_NUMBER == 0) {
                     return this.SIOShiftClockDivider - this.shiftClocks;
                 }
                 else {
-                    return -1;
+                    return 0x7FFFFFFF;
                 }
             case 3:
                 if (this.SIOCNT_UART_SEND_ENABLE && !this.SIOCNT_UART_CTS) {
                     return (Math.max(((this.SIOCNT_UART_FIFO_ENABLE) ? (this.SIOCNT_UART_FIFO * 8) : 8) - 1, 0) * this.SIOShiftClockDivider) + (this.SIOShiftClockDivider - this.shiftClocks);
                 }
                 else {
-                    return -1;
+                    return 0x7FFFFFFF;
                 }
         }
     }
     else {
-        return -1;
+        return 0x7FFFFFFF;
     }
 }*/
