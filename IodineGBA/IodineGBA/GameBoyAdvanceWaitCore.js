@@ -148,6 +148,7 @@ GameBoyAdvanceWait.prototype.readPOSTBOOT = function () {
 }
 GameBoyAdvanceWait.prototype.writeHALTCNT = function (data) {
     data = data | 0;
+    this.IOCore.updateCoreSpillRetain();
     //HALT/STOP mode entrance:
     if ((data & 0x80) == 0) {
         //Halt:

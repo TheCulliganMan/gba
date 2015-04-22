@@ -204,6 +204,12 @@ GameBoyAdvanceIO.prototype.updateCore = function (clocks) {
         this.updateCoreSpill();
     }
 }
+GameBoyAdvanceIO.prototype.updateCoreForce = function (clocks) {
+    clocks = clocks | 0;
+    //This is used during halt mode of operation:
+    this.accumulatedClocks = ((this.accumulatedClocks | 0) + (clocks | 0)) | 0;
+    this.updateCoreSpill();
+}
 GameBoyAdvanceIO.prototype.updateCoreNegative = function (clocks) {
     clocks = clocks | 0;
     //This is used during normal/dma modes of operation:
@@ -305,9 +311,9 @@ GameBoyAdvanceIO.prototype.handleDMA = function () {
     } while ((this.systemStatus & 0x90) == 0x10);
 }
 GameBoyAdvanceIO.prototype.handleHalt = function () {
-    if (!this.irq.IRQMatch()) {
+    if ((this.irq.IRQMatch() | 0) == 0) {
         //Clock up to next IRQ match or DMA:
-        this.updateCore(this.cyclesUntilNextHALTEvent() | 0);
+        this.updateCoreForce(this.cyclesUntilNextHALTEvent() | 0);
     }
     else {
         //Exit HALT promptly:

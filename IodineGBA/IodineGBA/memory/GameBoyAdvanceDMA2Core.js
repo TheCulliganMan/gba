@@ -451,10 +451,3 @@ GameBoyAdvanceDMA2.prototype.nextEventTime = function () {
     }
     return clocks | 0;
 }
-GameBoyAdvanceDMA2.prototype.nextIRQEventTime = function () {
-    var clocks = 0x7FFFFFFF;
-    if ((this.irqFlagging | 0) == 0x40) {
-        clocks = this.nextEventTime() | 0;
-    }
-    return clocks | 0;
-}

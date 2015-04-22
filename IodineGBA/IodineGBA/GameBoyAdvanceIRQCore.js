@@ -32,7 +32,7 @@ GameBoyAdvanceIRQ.prototype.initialize = function () {
 }
 GameBoyAdvanceIRQ.prototype.IRQMatch = function () {
     //Used to exit HALT:
-    return ((this.interruptsEnabled & this.interruptsRequested) != 0);
+    return (this.interruptsEnabled & this.interruptsRequested);
 }
 GameBoyAdvanceIRQ.prototype.checkForIRQFire = function () {
     //Tell the CPU core when the emulated hardware is triggering an IRQ:
@@ -97,10 +97,6 @@ GameBoyAdvanceIRQ.prototype.nextEventTime = function () {
     clocks = this.findClosestEvent(clocks | 0, this.timer.nextTimer2IRQEventTime() | 0, 0x20) | 0;
     clocks = this.findClosestEvent(clocks | 0, this.timer.nextTimer3IRQEventTime() | 0, 0x40) | 0;
     //clocks = this.findClosestEvent(clocks | 0, this.IOCore.serial.nextIRQEventTime() | 0, 0x80) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.dmaChannel0.nextIRQEventTime() | 0, 0x100) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.dmaChannel1.nextIRQEventTime() | 0, 0x200) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.dmaChannel2.nextIRQEventTime() | 0, 0x400) | 0;
-    clocks = this.findClosestEvent(clocks | 0, this.dmaChannel3.nextIRQEventTime() | 0, 0x800) | 0;
     //clocks = this.findClosestEvent(clocks | 0, this.IOCore.cartridge.nextIRQEventTime() | 0, 0x2000) | 0;
     return clocks | 0;
 }

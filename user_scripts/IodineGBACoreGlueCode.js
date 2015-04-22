@@ -29,6 +29,7 @@ var games = {
     "croket4":"Croket! 4 - Bank no Mori no Mamorigami",
     "digimon_racing":"Digimon Racing",
     "dbz_supersonic":"Dragon Ball Z - Supersonic Warriors",
+    "ff4":"Final Fantasy IV Advance",
     "final_fantasy_tactics":"Final Fantasy Tactics Advance",
     "fire_emblem":"Fire Emblem",
     "frogger1":"Frogger Advance - The Great Quest",
@@ -58,6 +59,7 @@ var games = {
     "megaman_zero3":"Megaman Zero 3",
     "megaman_zero4":"Megaman Zero 4",
     "metalslug":"Metal Slug Advance",
+    "metroid_fusion":"Metroid Fusion",
     "momotarou_dentetsu":"Momotarou Dentetsu G Gold Deck wo Tsukure!",
     "monopoly":"Monopoly",
     "monster_force":"Monster Force",
@@ -94,9 +96,13 @@ var games = {
     "tmnt":"Teenage Mutant Ninja Turtles",
     "sims_bustin_out":"The Sims: Bustin' Out",
     "sims2":"The Sims 2",
+    "spyro_adventure":"Spyro Adventure",
+    "spyro_ice":"Spyro: Season of Ice",
+    "spyro_flame":"Spyro 2: Season of Flame",
     "turok_evolution":"Turok Evolution",
     "warioland4":"Wario Land 4",
     "wario_ware":"Wario Ware Inc",
+    "zelda_past":"The Legend of Zelda: A Link to the Past",
     "zelda_minish":"The Legend of Zelda: The Minish Cap"
 };
 var Iodine = null;
